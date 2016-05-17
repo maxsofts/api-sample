@@ -1,9 +1,15 @@
 <?php
+
 namespace max_api\database;
-
-
+/**
+ * Class database
+ * @package max_api\database
+ */
 class database
 {
+    /**
+     * Config database
+     */
     protected $_host = "localhost";
     protected $_dbname = "max_api_user";
     protected $_username = "root";
@@ -11,12 +17,17 @@ class database
     protected $_table_user = "max_api_user";
     protected $_connect;
 
+    /**
+     * database constructor.
+     */
     public function __construct()
     {
         $this->dbConnect();
     }
 
-
+    /**
+     * Database connect
+     */
     private function dbConnect()
     {
         $this->_connect = mysqli_connect($this->_host, $this->_username, $this->_password, $this->_dbname);
@@ -26,6 +37,13 @@ class database
         }
     }
 
+    /**
+     *
+     * Database setQuery
+     *
+     * @param $query
+     * @return bool
+     */
     public function setQuery($query)
     {
         $results = $this->_connect->query($query);
@@ -36,6 +54,14 @@ class database
         return false;
     }
 
+    /**
+     *
+     * Database test check auth
+     *
+     * @param $username
+     * @param $password
+     * @return bool
+     */
     public function auth($username, $password)
     {
         if (!$username || !$password) {
@@ -50,6 +76,13 @@ class database
         return $select;
     }
 
+    /**
+     *
+     * Database set new token
+     *
+     * @param $id
+     * @return bool|string
+     */
     public function set_token($id)
     {
         $token = sha1(rand() . microtime());
@@ -82,6 +115,11 @@ class database
 
             return false;
         }
+
+    }
+
+    public function getField($table = "max_api_user", $columnIn = array(1 => 1), $columnOut = array('0'=>"*"))
+    {
 
     }
 }
