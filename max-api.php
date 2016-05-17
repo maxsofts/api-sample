@@ -7,9 +7,9 @@ require_once 'bootstrap.php';
 /**
  * Max API config
  */
-use max_api\api\config;
+use max_api\api\maxApi;
 
-$app = new config();
+$app = new maxApi();
 
 /**
  * Initiiate Library

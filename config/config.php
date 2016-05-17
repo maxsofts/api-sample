@@ -7,7 +7,7 @@ return [
     "driver" => [
         "host" => "localhost",
 
-        "dbName" => "sample",
+        "dbName" => "max_api_user",
 
         "username" => "root",
 

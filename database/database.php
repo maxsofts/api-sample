@@ -1,6 +1,8 @@
 <?php
 
 namespace max_api\database;
+
+
 /**
  * Class database
  * @package max_api\database
@@ -22,6 +24,7 @@ class database
      */
     public function __construct()
     {
+
         $this->dbConnect();
     }
 

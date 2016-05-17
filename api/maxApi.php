@@ -2,15 +2,41 @@
 namespace max_api\api;
 
 use max_api\contracts\api;
+use max_api\contracts\database\databaseElement;
 use max_api\database\database;
+use max_api\database\maxDatabase;
 
-class config extends api
+class maxApi extends api
 {
     private $_db;
 
     public function __construct()
     {
-        $this->_db = new database();
+        //$this->_db = new database();
+
+
+        $query = new maxDatabase();
+
+        $query
+            ->select(array(
+                "`test`","`test`"
+            ));
+        $query->from('`table`');
+        $query->where(
+            array(
+                "`id` = \"1\"","`test` IN (1,2,3)"
+            )
+        );
+
+
+        $select = new databaseElement("SELECT",$query->__get('select'),",");
+        $from = new databaseElement("FROM",$query->__get('from'),"");
+        $where = new databaseElement("WHERE",$query->__get('where')," AND ");
+        $sql = $select->__toString();
+        $sql .= $from->__toString();
+        $sql .= $where->__toString();
+        var_dump($sql);
+        var_dump($query);
         parent::__construct();
     }
 

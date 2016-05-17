@@ -141,6 +141,12 @@ abstract class db
      */
     protected $unionAll = null;
 
+
+    protected $nameQuote;
+    /**
+     * Connect database
+     * @return mixed
+     */
     abstract public function dbConnect();
 
     abstract public function select($select = array());
@@ -175,4 +181,14 @@ abstract class db
 
     abstract public function __get($name);
 
+    abstract public function __set($name, $value);
+
+    /**
+     * quote
+     */
+    abstract public function quote($text, $escape = true);
+
+    abstract public function quoteName($name, $as = null);
+
+    abstract protected function quoteNameStr($strArr);
 }
