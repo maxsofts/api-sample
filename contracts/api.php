@@ -22,9 +22,16 @@ class api
     private $_method = "";
     private $_code = 200;
 
+    /**
+     * api constructor.
+     */
     public function __construct(){
         $this->inputs();
     }
+
+    /**
+     * Get request method
+     */
     private function inputs(){
         switch ($this->get_request_method()) {
             case "POST":
@@ -44,6 +51,12 @@ class api
         }
     }
 
+    /**
+     * Clean Inputs
+     *
+     * @param $data
+     * @return array|string
+     */
     private function cleanInputs($data)
     {
         $clean_input = array();
