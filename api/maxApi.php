@@ -2,41 +2,15 @@
 namespace max_api\api;
 
 use max_api\contracts\api;
-use max_api\contracts\database\databaseElement;
+use max_api\contracts\config;
 use max_api\database\database;
-use max_api\database\maxDatabase;
+use max_api\database\query;
 
 class maxApi extends api
 {
-    private $_db;
 
     public function __construct()
     {
-        //$this->_db = new database();
-
-
-        $query = new maxDatabase();
-
-        $query
-            ->select(array(
-                "`test`","`test`"
-            ));
-        $query->from('`table`');
-        $query->where(
-            array(
-                "`id` = \"1\"","`test` IN (1,2,3)"
-            )
-        );
-
-
-        $select = new databaseElement("SELECT",$query->__get('select'),",");
-        $from = new databaseElement("FROM",$query->__get('from'),"");
-        $where = new databaseElement("WHERE",$query->__get('where')," AND ");
-        $sql = $select->__toString();
-        $sql .= $from->__toString();
-        $sql .= $where->__toString();
-        var_dump($sql);
-        var_dump($query);
         parent::__construct();
     }
 
@@ -61,52 +35,37 @@ class maxApi extends api
      */
     public function get_token()
     {
-        $username = $this->_request['username'];
-        $password = $this->_request['password'];
+        $vendor = $this->_request['vendor'];
+        $hash = $this->_request['hash'];
 
-
-        if (!$username || !$password) {
+        if (!$vendor || !$hash) {
             $return = array(
                 "success" => false,
-                "message" => "Invalid Username or Password"
-            );
-
-
-            return $this->response($this->json($return), 400);
-        }
-
-        $auth = $this->_db->auth($username, $password);
-
-        if (!$auth->field_count) {
-            $return = array(
-                "success" => false,
-                "message" => "Invalid Username or Password"
+                "errorCode" => "max01",
             );
 
             return $this->response($this->json($return), 400);
         }
 
-        $authObject = $auth->fetch_object();
+        $query = new query();
 
-        $token = $this->_db->set_token($authObject->id);
+        $token = $query->apiCheck($vendor, $hash);
 
-
-        if (!$token) {
+        if(!$token){
             $return = array(
                 "success" => false,
-                "message" => "set token false please contact admin"
+                "errorCode" => "max02",
             );
 
-            return $this->response($this->json($return), 501);
+            return $this->response($this->json($return), 400);
         }
 
-
-        $results = array(
+        $return = array(
             "success" => true,
-            "token" => $token
+            "_token" => $token
         );
 
-        echo $this->response($this->json($results), 200);
+        echo $this->response($this->json($return), 200);
     }
 
     /*
@@ -117,5 +76,7 @@ class maxApi extends api
         if (is_array($data)) {
             return json_encode($data);
         }
+        return $data;
     }
+
 }

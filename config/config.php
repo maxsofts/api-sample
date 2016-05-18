@@ -12,5 +12,6 @@ return [
         "username" => "root",
 
         "password" => "root"
-    ]
+    ],
+
 ];
