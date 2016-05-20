@@ -161,9 +161,9 @@ class maxApi extends api
             return $this->response($this->json($return), 400);
         }
 
-        $auth = $query->auth($username,$password);
+        $auth = $query->auth($username, $password);
 
-        if(!$auth){
+        if (!$auth) {
             $return = array(
                 "success" => false,
                 "errorCode" => "max05",
@@ -174,7 +174,7 @@ class maxApi extends api
 
         $profile = $query->getInfoUser($auth);
 
-        if(!$profile){
+        if (!$profile) {
             $return = array(
                 "success" => false,
                 "errorCode" => "max06",
@@ -191,6 +191,134 @@ class maxApi extends api
         return $this->response($this->json($return));
 
     }
+
+
+    /**
+     * Đăng ký
+     *
+     * @return bool|void
+     */
+    public function register()
+    {
+
+        $query = new query();
+
+
+        $typeBase = config::get("register");
+
+        $token = $this->_request['token'];
+        $username = $this->_request['username'];
+        $password = $this->_request['password'];
+        $data = json_decode($this->_request['data']);
+
+        $type = $this->_request['type'];
+
+        /*
+         * Kiểm tra dạng có nằm trong dạng cho phép
+         */
+
+        if (!$type || !in_array($type, $typeBase)) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max08",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $check = $query->checkToken($token);
+
+        if (!$check) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max04",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+        /*
+         * Type facebook
+         */
+        switch ($type) {
+            case "facebook":
+
+                if (!$token || !$data):
+                    $return = array(
+                        "success" => false,
+                        "errorCode" => "max01",
+                    );
+
+                    return $this->response($this->json($return), 400);
+                endif;
+
+                $register = $query->registerFaceBook($data);
+
+                if (!$register):
+                    $return = array(
+                        "success" => false,
+                        "errorCode" => "max07",
+                        "error_list" => $query->__get("_query")->error_list
+                    );
+
+                    return $this->response($this->json($return), 400);
+
+                endif;
+
+                $return = array(
+                    "success" => true,
+                    "data" => array(
+                        "id" => $register
+                    ),
+                );
+
+                return $this->response($this->json($return));
+
+                break;
+            case "phone":
+                if (!$token || $username || $password) :
+                    $return = array(
+                        "success" => false,
+                        "errorCode" => "max01",
+                    );
+
+                    return $this->response($this->json($return), 400);
+                endif;
+
+                $data = [
+                    "username" => $username,
+                    "password" => $password
+                ];
+
+                $register = $query->register($data);
+
+                if (!$register):
+                    $return = array(
+                        "success" => false,
+                        "errorCode" => "max07",
+                        "error_list" => $query->__get("_query")->error_list
+                    );
+
+                    return $this->response($this->json($return), 400);
+
+                endif;
+
+                $return = array(
+                    "success" => true,
+                    "data" => array(
+                        "id" => $register
+                    ),
+                );
+
+                return $this->response($this->json($return));
+                break;
+
+            default:
+                return false;
+                break;
+        }
+
+    }
+
 
     /*
     *	Encode array into JSON

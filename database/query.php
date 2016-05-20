@@ -17,6 +17,7 @@ class query
         $this->_query = new maxDatabase();
     }
 
+
     /**
      *
      * Lấy token
@@ -31,18 +32,20 @@ class query
         /**
          * Set type select
          */
-        $this->_query->getQuery();
+        $query = $this->_query;
 
-        $this->_query->select(array('`token`'));
+        $query->getQuery();
 
-        $this->_query->from("`max_api`");
+        $query->select(array('`token`'));
 
-        $this->_query->where(array(
+        $query->from("`max_api`");
+
+        $query->where(array(
             "`vendor` = " . $this->_query->quote($vendor),
             "`hash` = " . $this->_query->quote($hash),
         ));
 
-        $this->_query->setQuery();
+        $query->setQuery();
 
         $token = $this->_query->loadResult();
 
@@ -54,24 +57,34 @@ class query
         return $token;
     }
 
+    /**
+     *
+     * Kiểm tra token có tồn tài hay không
+     *
+     * @param $token
+     * @return bool
+     * @throws RuntimeException
+     */
     public function checkToken($token)
     {
         /**
          * Set type select
          */
-        $this->_query->getQuery();
+        $query = $this->_query;
 
-        $this->_query->select(array('Count(`id`)'));
+        $query->getQuery();
 
-        $this->_query->from("`max_api`");
+        $query->select(array('Count(`id`)'));
 
-        $this->_query->where(array(
-            "`token` = " . $this->_query->quote($token),
+        $query->from("`max_api`");
+
+        $query->where(array(
+            "`token` = " . $query->quote($token),
         ));
 
-        $this->_query->setQuery();
+        $query->setQuery();
 
-        $check = $this->_query->loadResult();
+        $check = $query->loadResult();
 
         if ($check) {
             return true;
@@ -93,20 +106,22 @@ class query
     {
         $token = md5(uniqid(rand(), true));
 
-        $this->_query->getQuery();
+        $query = $this->_query;
 
-        $this->_query->update("`max_api`");
+        $query->getQuery();
 
-        $this->_query->set(
-            "`token` = " . $this->_query->quote($token)
+        $query->update("`max_api`");
+
+        $query->set(
+            "`token` = " . $query->quote($token)
         );
 
-        $this->_query->where(array(
-            "`vendor` = " . $this->_query->quote($vendor),
-            "`hash` = " . $this->_query->quote($hash),
+        $query->where(array(
+            "`vendor` = " . $query->quote($vendor),
+            "`hash` = " . $query->quote($hash),
         ));
 
-        $update = $this->_query->setUpdate();
+        $update = $query->setUpdate();
 
         if ($update) {
             return $token;
@@ -126,21 +141,22 @@ class query
      */
     public function checkExitsVendor($vendor, $hash)
     {
+        $query = $this->_query;
 
-        $this->_query->getQuery();
+        $query->getQuery();
 
-        $this->_query->select(array('Count(`id`)'));
+        $query->select(array('Count(`id`)'));
 
-        $this->_query->from("`max_api`");
+        $query->from("`max_api`");
 
-        $this->_query->where(array(
-            "`vendor` = " . $this->_query->quote($vendor),
-            "`hash` = " . $this->_query->quote($hash),
+        $query->where(array(
+            "`vendor` = " . $query->quote($vendor),
+            "`hash` = " . $query->quote($hash),
         ));
 
-        $this->_query->setQuery();
+        $query->setQuery();
 
-        $count = $this->_query->loadResult();
+        $count = $query->loadResult();
 
         if ($count) {
             return true;
@@ -150,6 +166,15 @@ class query
     }
 
 
+    /**
+     *
+     * Kiểm tra tài khoản và mật khẩu đẫ đúng chưa
+     *
+     * @param $username
+     * @param $password
+     * @return bool
+     * @throws RuntimeException
+     */
     public function auth($username, $password)
     {
         $query = $this->_query;
@@ -186,6 +211,15 @@ class query
 
     }
 
+
+    /**
+     *
+     * Lấy thông tin tài khoản theo ID
+     *
+     * @param $userId
+     * @return bool|mixed
+     * @throws RuntimeException
+     */
     public function getInfoUser($userId)
     {
         $query = $this->_query;
@@ -224,5 +258,99 @@ class query
         }
 
         return $query->loadObjects();
+    }
+
+
+    /**
+     *
+     * Đăng ký tài khoản
+     *
+     * @param array $data
+     * @return bool
+     */
+    public function register($data = array()){
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query->insert(
+            $query->quoteName("auth_user")
+        );
+
+        $query->set(array(
+            $query->quoteName("username")." = ".$query->quote($data["username"]),
+            $query->quoteName("password")." = ".$query->quote(password::make_password($data["password"])),
+            $query->quoteName("date_joined")." = ".$query->quote(date("Y-m-d H:i:s"))
+
+        ));
+
+        $lastid = $query->setInsert();
+
+        if($query->db->errno){
+            return false;
+        }
+
+        return $lastid;
+    }
+
+    /**
+     *
+     * Lưu trữ tài khoản facebook
+     *
+     * @param $data
+     * @return bool
+     */
+    public function registerFaceBook($data){
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query->insert(
+            $query->quoteName("auth_user")
+        );
+
+        $query->set(array(
+            $query->quoteName("username")." = ".$query->quote($data->id),
+            $query->quoteName("password")." = ".$query->quote(password::make_password(md5(uniqid(rand(), true)))),
+            $query->quoteName("date_joined")." = ".$query->quote(date("Y-m-d H:i:s"))
+
+        ));
+
+        $last_user_id = $query->setInsert();
+
+        if($query->db->errno){
+            return false;
+        }
+
+        $query->getQuery();
+
+        $query->insert(
+            $query->quoteName("social_auth_usersocialauth")
+        );
+
+        $query->set(array(
+            $query->quoteName("provider")." = ".$query->quote("facebook"),
+            $query->quoteName("uid")." = ".$query->quote($data->id),
+            $query->quoteName("extra_data")." = ".$query->quote(json_encode($data)),
+            $query->quoteName("user_id")." = ".$query->quote($last_user_id)
+        ));
+
+        $check = $query->setInsert();
+
+        if($query->db->errno || !$check){
+            return false;
+        }
+
+        return $last_user_id;
+
+
+    }
+    /**
+     * @param $name
+     * @return null
+     */
+    public function __get($name)
+    {
+        return isset($this->$name) ? $this->$name : null;
     }
 }

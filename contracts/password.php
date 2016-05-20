@@ -42,8 +42,6 @@ class password
         $salt = $pieces[2];
         $old_hash = $pieces[3];
 
-
-
         $hash = hash_pbkdf2("SHA256", $password, $salt, $iterations, 0, true);
         $hash = base64_encode($hash);
 

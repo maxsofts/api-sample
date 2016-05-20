@@ -22,6 +22,10 @@ class maxDatabase extends db
         $this->dbConnect();
     }
 
+    public function __destruct()
+    {
+       // $this->db->close();
+    }
 
     /**
      * Database Connect
@@ -30,7 +34,7 @@ class maxDatabase extends db
     {
         $config = config::get('config.driver');
 
-        $connect = mysqli_connect($config['host'], $config['username'], $config['password'], $config['dbName']);
+        $connect = mysqli_connect($config['host'], $config['username'], $config['password'], $config['dbName'],$config['port'],$config['socket']);
         // check connection
         if ($connect->connect_error) {
             throw new Exception('Database connection failed: ' . $connect->connect_error);
@@ -57,6 +61,7 @@ class maxDatabase extends db
 
     /**
      * @param array $select
+     * @return $this
      */
     public function select($select = array())
     {
@@ -98,6 +103,7 @@ class maxDatabase extends db
     /**
      * @param array $where
      * @param string $glue
+     * @return $this
      */
     public function where($where = array(), $glue = "AND")
     {
@@ -215,6 +221,49 @@ class maxDatabase extends db
     }
 
     /**
+     * @param $table
+     * @param bool|false $incrementField
+     * @return $this
+     */
+    public function insert($table, $incrementField = false)
+    {
+        $this->type = 'insert';
+        $this->insert = new databaseElement('INSERT INTO', $table);
+        $this->autoIncrementField = $incrementField;
+
+        return $this;
+    }
+
+    /**
+     * @param $columns
+     * @return $this
+     */
+    public function columns($columns)
+    {
+        if (is_null($this->columns)) {
+            $this->columns = new databaseElement('()', $columns);
+        } else {
+            $this->columns->append($columns);
+        }
+
+        return $this;
+    }
+
+    /**
+     * @param $values
+     * @return $this
+     */
+    public function values($values)
+    {
+        if (is_null($this->values)) {
+            $this->values = new databaseElement('()', $values, '),(');
+        } else {
+            $this->values->append($values);
+        }
+        return $this;
+    }
+
+    /**
      * @param mixed $conditions
      * @param string $glue
      * @return $this
@@ -249,8 +298,7 @@ class maxDatabase extends db
     {
         $this->sql = null;
 
-        switch ($clause)
-        {
+        switch ($clause) {
             case 'select':
                 $this->select = null;
                 $this->type = null;
@@ -363,14 +411,20 @@ class maxDatabase extends db
         return $this;
     }
 
+    /**
+     * @return $this
+     */
     public function setQuery()
     {
         if (is_null($this->sql)) {
             $this->sql = $this->getSql();
         }
 
-
         $results = $this->db->query($this->sql);
+
+        if ($results->db->error || !$results) {
+            $this->error_list = $results->db->error_list;
+        }
 
         if ($results) {
             $this->data = $results;
@@ -379,6 +433,9 @@ class maxDatabase extends db
         return $this;
     }
 
+    /**
+     * @return bool
+     */
     public function setUpdate()
     {
         try {
@@ -386,10 +443,10 @@ class maxDatabase extends db
             $this->db->autocommit(FALSE);
 
 
-            $res = $this->setQuery();
+            $results = $this->setQuery();
 
-            if ($res === false) {
-
+            if ($results->db->error) {
+                $this->error_list = $results->db->error_list;
                 return false;
             }
             $this->db->commit();
@@ -404,19 +461,28 @@ class maxDatabase extends db
         }
     }
 
+    /**
+     * @return bool
+     */
     public function setInsert()
     {
         try {
             /* switch autocommit status to FALSE. Actually, it starts transaction */
             $this->db->autocommit(FALSE);
-            $res = $this->db->query($this->getSql());
-            if ($res === false) {
+
+            $results = $this->setQuery();
+
+            if ($results->db->error) {
+                $this->error_list = $results->db->error_list;
                 return false;
             }
+
+            $last_id = $results->db->insert_id;
+
             $this->db->commit();
             $this->db->autocommit(TRUE);
 
-            return $this->db->insert_id();
+            return $last_id;
         } catch (Exception $e) {
             $this->db->rollback();
             $this->db->autocommit(TRUE);
@@ -648,6 +714,10 @@ class maxDatabase extends db
         return $query;
     }
 
+    /**
+     * @param $strArr
+     * @return string
+     */
     protected function quoteNameStr($strArr)
     {
         $parts = array();

@@ -35,103 +35,86 @@ abstract class db
 
     /**
      * @var    db  The select element.
-     * @since  11.1
      */
     protected $select = null;
 
     /**
      * @var    db  The delete element.
-     * @since  11.1
      */
     protected $delete = null;
 
     /**
      * @var    db  The update element.
-     * @since  11.1
      */
     protected $update = null;
 
     /**
      * @var    db  The insert element.
-     * @since  11.1
      */
     protected $insert = null;
 
     /**
      * @var    db  The from element.
-     * @since  11.1
      */
     protected $from = null;
 
     /**
      * @var    db  The join element.
-     * @since  11.1
      */
     protected $join = null;
 
     /**
      * @var    db  The set element.
-     * @since  11.1
      */
     protected $set = null;
 
     /**
      * @var    db  The where element.
-     * @since  11.1
      */
     protected $where = null;
 
     /**
      * @var    db  The group by element.
-     * @since  11.1
      */
     protected $group = null;
 
     /**
      * @var    db  The having element.
-     * @since  11.1
      */
     protected $having = null;
 
     /**
      * @var    db  The column list for an INSERT statement.
-     * @since  11.1
      */
     protected $columns = null;
 
     /**
      * @var    db  The values list for an INSERT statement.
-     * @since  11.1
      */
     protected $values = null;
 
     /**
      * @var    db  The order element.
-     * @since  11.1
      */
     protected $order = null;
 
     /**
      * @var   object  The auto increment insert field element.
-     * @since 11.1
      */
     protected $autoIncrementField = null;
 
     /**
      * @var    db  The call element.
-     * @since  12.1
      */
     protected $call = null;
 
     /**
      * @var    db  The exec element.
-     * @since  12.1
      */
     protected $exec = null;
 
     /**
      * @var    db  The union element.
-     * @since  12.1
      */
     protected $union = null;
 
@@ -146,6 +129,9 @@ abstract class db
 
 
     protected $data;
+
+
+    public $error_list;
 
     /**
      * Connect database
@@ -184,13 +170,39 @@ abstract class db
     abstract public function update($table);
 
     /**
+     * Add a table name to the INSERT clause of the query.
+     *
+     * Note that you must not mix insert, update, delete and select method calls when building a query.
+     *
+     * Usage:
+     * $query->insert('#__a')->set('id = 1');
+     * $query->insert('#__a')->columns('id, title')->values('1,2')->values('3,4');
+     * $query->insert('#__a')->columns('id, title')->values(array('1,2', '3,4'));
+     */
+    abstract public function insert($table, $incrementField = false);
+
+    /**
+     * Adds a column, or array of column names that would be used for an INSERT INTO statement.
+     */
+    abstract public function columns($columns);
+
+    /**
+     * Adds a tuple, or array of tuples that would be used as values for an INSERT INTO statement.
+     *
+     * Usage:
+     * $query->values('1,2,3')->values('4,5,6');
+     * $query->values(array('1,2,3', '4,5,6'));
+     */
+    abstract public function values($values);
+
+    /**
      * Add a single condition string, or an array of strings to the SET clause of the query.
      *
      * Usage:
      * $query->set('a = 1')->set('b = 2');
      *
-     * @param   mixed   $conditions  A string or array of string conditions.
-     * @param   string  $glue        The glue by which to join the condition strings. Defaults to ,.
+     * @param   mixed $conditions A string or array of string conditions.
+     * @param   string $glue The glue by which to join the condition strings. Defaults to ,.
      *                               Note that the glue is set on first use and cannot be changed.
      */
     abstract public function set($conditions, $glue = ',');
@@ -225,6 +237,8 @@ abstract class db
 
     abstract public function setQuery();
 
+    abstract public function getSql();
+
     /**
      *
      * load data
@@ -250,5 +264,9 @@ abstract class db
 
     abstract public function quoteName($name, $as = null);
 
+    abstract public function append($name, $elements);
+
     abstract protected function quoteNameStr($strArr);
+
+    abstract public function escape($text, $extra = false);
 }
