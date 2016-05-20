@@ -5,8 +5,5 @@
 	RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-s
 
-
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME} !-s
    	RewriteRule ^(.*)$ $1.php?rquest=$1 [QSA,NC,L]
 </IfModule>
