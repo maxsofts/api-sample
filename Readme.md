@@ -8,7 +8,7 @@ với đường dẫn localhost là : api.max
 Cách test ở một server bất kỳ
 ```php
 $.ajax({
-    url:'http://<Đường dẫn của bạn đến thư mục>/max-api',
+    url:'http://<Đường dẫn của bạn đến thư mục>/',
     dataType:'json',
     data:{
         'action':'get_token',
