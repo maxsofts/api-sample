@@ -61,6 +61,7 @@ class maxDatabase extends db
     public function select($select = array())
     {
         if (is_null($this->select)) {
+            $this->type = "select";
             $this->select = new databaseElement('SELECT', $select);
         } else {
             $this->select->append($select);
@@ -368,6 +369,7 @@ class maxDatabase extends db
             $this->sql = $this->getSql();
         }
 
+
         $results = $this->db->query($this->sql);
 
         if ($results) {
@@ -525,9 +527,10 @@ class maxDatabase extends db
     {
         $query = '';
 
-        if ($this->sql) {
+        if (!is_null($this->sql)) {
             return $this->sql;
         }
+
 
         switch ($this->type) {
             case 'element':

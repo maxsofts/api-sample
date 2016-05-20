@@ -11,6 +11,7 @@ class maxApi extends api
 
     public function __construct()
     {
+
         parent::__construct();
     }
 
@@ -31,7 +32,7 @@ class maxApi extends api
     }
 
     /**
-     *
+     * Lấy token hoặc tạo mới token nếu chưa có
      */
     public function get_token()
     {
@@ -49,9 +50,20 @@ class maxApi extends api
 
         $query = new query();
 
+        $check = $query->checkExitsVendor($vendor, $hash);
+
+        if (!$check) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max03",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
         $token = $query->apiCheck($vendor, $hash);
 
-        if(!$token){
+        if (!$token) {
             $return = array(
                 "success" => false,
                 "errorCode" => "max02",
@@ -66,6 +78,118 @@ class maxApi extends api
         );
 
         echo $this->response($this->json($return), 200);
+    }
+
+    /**
+     * Tạo mới token hoặc thay đổi token ;
+     */
+    public function reset_token()
+    {
+        $vendor = $this->_request['vendor'];
+        $hash = $this->_request['hash'];
+
+        if (!$vendor || !$hash) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $query = new query();
+
+        $check = $query->checkExitsVendor($vendor, $hash);
+
+        if (!$check) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max03",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $token = $query->setToken($vendor, $hash);
+
+        if (!$token) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max02",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = array(
+            "success" => true,
+            "_token" => $token
+        );
+
+        echo $this->response($this->json($return), 200);
+    }
+
+
+    /**
+     * Login app
+     */
+    public function login()
+    {
+        $token = $this->_request['token'];
+        $username = $this->_request['username'];
+        $password = $this->_request['password'];
+
+        if (!$token || !$username || !$password) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $query = new query();
+
+        $check = $query->checkToken($token);
+
+        if (!$check) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max04",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $auth = $query->auth($username,$password);
+
+        if(!$auth){
+            $return = array(
+                "success" => false,
+                "errorCode" => "max05",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $profile = $query->getInfoUser($auth);
+
+        if(!$profile){
+            $return = array(
+                "success" => false,
+                "errorCode" => "max06",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = array(
+            "success" => true,
+            "data" => $profile,
+        );
+
+        return $this->response($this->json($return));
+
     }
 
     /*

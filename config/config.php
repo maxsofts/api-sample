@@ -7,7 +7,7 @@ return [
     "driver" => [
         "host" => "localhost",
 
-        "dbName" => "max_api_user",
+        "dbName" => "gbd_test",
 
         "username" => "root",
 
