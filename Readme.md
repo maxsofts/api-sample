@@ -1,81 +1,42 @@
-#Cách sử dụng
+#Hướng dẫn sử dụng
 
-với đường dẫn localhost là : api.max
+Cài đặt csdl vào file ```config/config.php``` sửa thông tin kết nối database.
 
-(với các máy ko thay đổi đường dẫn thì truy cập mặc định đến file max-api.php)
+API giờ xây dựng riêng cho Ghiền nên database sử dụng có thể liên hệ ```khanh.dao@maxxus.vn``` để lấy
+
+Chi tiết hoạt động API vui lòng xem code :|
+
+#Các hàm đã xây dựng
+
+1. Tạo token
+2. Reset token
+3. Đăng ký
+4. Đăng nhập
 
 
-Cách test ở một server bất kỳ
+#Hướng dẫn sử dụng với Ajax Jquery
+
+1. Tạo và lấy token
 ```php
 $.ajax({
     url:'http://<Đường dẫn của bạn đến thư mục>/',
     dataType:'json',
     data:{
         'action':'get_token',
-        'username':'maxapi',
-        'password':'3md3pk0c4ns0nph4n'
+        'vendor':'<vendor được cung cấp>',
+        'hash':'<hash được cung cấp>'
     },
     success:function(results){
-        console.log(results);
+        console.log(results); //Dữ liệu trả về
     }
 });
-
 ```
-Trong đó username và password đã được tạo trong database với tài khoản và mật khẩu như trên
+hoặc truy cập trực tiếp vào đường dẫn
+```php http://<Đường dẫn của bạn đến thư mục>/?action=get_token&vendor=vendorcungcap&hash=hashcungcap```
 
-Sửa config database trong file database
-
-Bảng mặc định
-
-max_api_user
+Dữ liệu trả về
 ```php
-
-SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-SET time_zone = "+00:00";
-
---
--- Database: `max_api_user`
---
-
--- --------------------------------------------------------
-
---
--- Table structure for table `max_api_user`
---
-
-CREATE TABLE `max_api_user` (
-  `id` int(11) NOT NULL,
-  `username` varchar(50) NOT NULL,
-  `password` varchar(255) NOT NULL,
-  `token` text NOT NULL
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=latin1;
-
---
--- Dumping data for table `max_api_user`
---
-
-INSERT INTO `max_api_user` (`id`, `username`, `password`, `token`) VALUES
-(1, 'maxapi', '3md3pk0c4ns0nph4n', '');
-
---
--- Indexes for dumped tables
---
-
---
--- Indexes for table `max_api_user`
---
-ALTER TABLE `max_api_user`
-  ADD PRIMARY KEY (`id`);
-
---
--- AUTO_INCREMENT for dumped tables
---
-
---
--- AUTO_INCREMENT for table `max_api_user`
---
-ALTER TABLE `max_api_user`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT,AUTO_INCREMENT=2;
+{"success":true,"_token":"matoken"}
 ```
 
-
+Lưu trữ mã token để thay bằng việc auth trực tiếp qua hệ thống
