@@ -32,7 +32,9 @@ $.ajax({
 });
 ```
 hoặc truy cập trực tiếp vào đường dẫn
-```php http://<Đường dẫn của bạn đến thư mục>/?action=get_token&vendor=vendorcungcap&hash=hashcungcap```
+```php
+http://<Đường dẫn của bạn đến thư mục>/?action=get_token&vendor=vendorcungcap&hash=hashcungcap
+```
 
 Dữ liệu trả về
 ```php
