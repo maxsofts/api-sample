@@ -9,5 +9,6 @@ return [
     "max05" => "Mật khẩu hoặc password không chính xác",
     "max06" => "Dữ liệu không tồn tại trong cơ sở dữ liệu",
     "max07" => "Cơ sở dữ liệu không thể cập nhật",
-    "max08" => "Chưa định dạng kiểu đăng ký"
+    "max08" => "Chưa định dạng kiểu đăng ký",
+    "max09" => "Tài khoản facebook không tôn tại"
 ];

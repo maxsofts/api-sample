@@ -284,6 +284,8 @@ class query
 
         ));
 
+        // trống phần điện thoại;
+
         $lastid = $query->setInsert();
 
         if($query->db->errno){
@@ -312,8 +314,8 @@ class query
         $query->set(array(
             $query->quoteName("username")." = ".$query->quote($data->id),
             $query->quoteName("password")." = ".$query->quote(password::make_password(md5(uniqid(rand(), true)))),
-            $query->quoteName("date_joined")." = ".$query->quote(date("Y-m-d H:i:s"))
-
+            $query->quoteName("date_joined")." = ".$query->quote(date("Y-m-d H:i:s")),
+            $query->quoteName("is_active")." = ".$query->quote("1"),
         ));
 
         $last_user_id = $query->setInsert();
@@ -342,8 +344,42 @@ class query
         }
 
         return $last_user_id;
+    }
 
+    /**
+     *
+     * Get User Id by facebook id
+     *
+     * @param $fb_id
+     * @return bool
+     * @throws RuntimeException
+     */
+    public function getUserIdByFB($fb_id){
+        $query = $this->_query;
 
+        $query->getQuery();
+
+        $query->select(array(
+            $query->quoteName("social.user_id"),
+        ));
+
+        $query->from(
+            $query->quoteName("social_auth_usersocialauth", "social")
+        );
+
+        $query->where(array(
+            $query->quoteName("social.uid")." = ".$query->quote($fb_id)
+        ));
+
+        $query->setQuery();
+
+        $user_id = $query->loadResult();
+
+        if ($user_id) {
+            return $user_id;
+        }
+
+        return false;
     }
     /**
      * @param $name

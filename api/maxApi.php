@@ -135,20 +135,29 @@ class maxApi extends api
      */
     public function login()
     {
+        $query = new query();
+
+        $typeBase = config::get("register");
+
         $token = $this->_request['token'];
+
         $username = $this->_request['username'];
+
         $password = $this->_request['password'];
 
-        if (!$token || !$username || !$password) {
+        $fb_id = $this->_request['fb_id'];
+
+        $type = $this->_request['type'];
+
+
+        if (!$type || !in_array($type, $typeBase)) {
             $return = array(
                 "success" => false,
-                "errorCode" => "max01",
+                "errorCode" => "max08",
             );
 
             return $this->response($this->json($return), 400);
         }
-
-        $query = new query();
 
         $check = $query->checkToken($token);
 
@@ -161,34 +170,92 @@ class maxApi extends api
             return $this->response($this->json($return), 400);
         }
 
-        $auth = $query->auth($username, $password);
 
-        if (!$auth) {
-            $return = array(
-                "success" => false,
-                "errorCode" => "max05",
-            );
+        switch ($type) {
+            case "facebook":
+                if (!$fb_id):
+                    $return = array(
+                        "success" => false,
+                        "errorCode" => "max01",
+                    );
 
-            return $this->response($this->json($return), 400);
+                    return $this->response($this->json($return), 400);
+                endif;
+
+                $user_id = $query->getUserIdByFB($fb_id);
+
+                if (!$user_id):
+                    $return = array(
+                        "success" => false,
+                        "errorCode" => "max09",
+                    );
+
+                    return $this->response($this->json($return), 400);
+                endif;
+
+                $profile = $query->getInfoUser($user_id);
+
+                if (!$profile) :
+                    $return = array(
+                        "success" => false,
+                        "errorCode" => "max06",
+                    );
+
+                    return $this->response($this->json($return), 400);
+                endif;
+
+                $return = array(
+                    "success" => true,
+                    "data" => $profile,
+                );
+
+                return $this->response($this->json($return));
+
+
+                break;
+            case "phone":
+                if (!$username || !$password):
+                    $return = array(
+                        "success" => false,
+                        "errorCode" => "max01",
+                    );
+
+                    return $this->response($this->json($return), 400);
+                endif;
+                $auth = $query->auth($username, $password);
+
+                if (!$auth) :
+                    $return = array(
+                        "success" => false,
+                        "errorCode" => "max05",
+                    );
+
+                    return $this->response($this->json($return), 400);
+                endif;
+
+                $profile = $query->getInfoUser($auth);
+
+                if (!$profile) :
+                    $return = array(
+                        "success" => false,
+                        "errorCode" => "max06",
+                    );
+
+                    return $this->response($this->json($return), 400);
+                endif;
+
+                $return = array(
+                    "success" => true,
+                    "data" => $profile,
+                );
+
+                return $this->response($this->json($return));
+
+                break;
+
+            default:
+                break;
         }
-
-        $profile = $query->getInfoUser($auth);
-
-        if (!$profile) {
-            $return = array(
-                "success" => false,
-                "errorCode" => "max06",
-            );
-
-            return $this->response($this->json($return), 400);
-        }
-
-        $return = array(
-            "success" => true,
-            "data" => $profile,
-        );
-
-        return $this->response($this->json($return));
 
     }
 
@@ -200,15 +267,16 @@ class maxApi extends api
      */
     public function register()
     {
-
         $query = new query();
-
 
         $typeBase = config::get("register");
 
         $token = $this->_request['token'];
+
         $username = $this->_request['username'];
+
         $password = $this->_request['password'];
+
         $data = json_decode($this->_request['data']);
 
         $type = $this->_request['type'];
@@ -242,7 +310,7 @@ class maxApi extends api
         switch ($type) {
             case "facebook":
 
-                if (!$token || !$data):
+                if (!$data):
                     $return = array(
                         "success" => false,
                         "errorCode" => "max01",
@@ -274,8 +342,11 @@ class maxApi extends api
                 return $this->response($this->json($return));
 
                 break;
+            /*
+             * Type Phone
+             */
             case "phone":
-                if (!$token || $username || $password) :
+                if (!$username || !$password) :
                     $return = array(
                         "success" => false,
                         "errorCode" => "max01",
