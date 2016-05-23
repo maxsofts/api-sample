@@ -1,6 +1,7 @@
 <?php
 
 namespace max_api\database;
+
 use max_api\contracts\password;
 
 /**
@@ -191,7 +192,7 @@ class query
         );
 
         $query->where(
-            $query->quoteName("username")." = ".$query->quote($username)
+            $query->quoteName("username") . " = " . $query->quote($username)
         );
 
         $query->setQuery();
@@ -199,13 +200,26 @@ class query
         $user = $query->loadObjects();
 
 
-        if(!$user->password){
+        if (!$user->password) {
             return false;
         }
 
-        if(!password::verify_Password($user->password,$password)){
+        if (!password::verify_Password($user->password, $password)) {
             return false;
         }
+
+        //update last login
+        $query->getQuery();
+
+        $query->update(
+            $query->quoteName('auth_user')
+        );
+
+        $query->set(array(
+           $query->quoteName('last_login')." = ".$query->quote(date("Y-m-d H:i:s"))
+        ));
+
+        $query->setUpdate();
 
         return $user->id;
 
@@ -248,12 +262,12 @@ class query
         $query->join("LEFT", "`userinformation_userprofile` AS `profile` ON `user`.id = `profile`.`user_id_id`");
 
         $query->where(
-          $query->quoteName("user.id")." = ".$query->quote($userId)
+            $query->quoteName("user.id") . " = " . $query->quote($userId)
         );
 
         $query->setQuery();
 
-        if($query->db->errno){
+        if ($query->db->errno) {
             return false;
         }
 
@@ -268,7 +282,8 @@ class query
      * @param array $data
      * @return bool
      */
-    public function register($data = array()){
+    public function register($data = array())
+    {
         $query = $this->_query;
 
         $query->getQuery();
@@ -278,21 +293,40 @@ class query
         );
 
         $query->set(array(
-            $query->quoteName("username")." = ".$query->quote($data["username"]),
-            $query->quoteName("password")." = ".$query->quote(password::make_password($data["password"])),
-            $query->quoteName("date_joined")." = ".$query->quote(date("Y-m-d H:i:s"))
+            $query->quoteName("username") . " = " . $query->quote($data["username"]),
+            $query->quoteName("first_name") . " = " . $query->quote($data["first_name"]),
+            $query->quoteName("password") . " = " . $query->quote(password::make_password($data["password"])),
+            $query->quoteName("date_joined") . " = " . $query->quote(date("Y-m-d H:i:s"))
 
         ));
 
-        // trống phần điện thoại;
+        $last_user_id = $query->setInsert();
 
-        $lastid = $query->setInsert();
+        /**
+         * Thiếu phần tiến hành số điện thoại kích hoạt
+         */
 
-        if($query->db->errno){
+        /*
+         * Insert profile with user
+         */
+        $query->getQuery();
+
+        $query->insert(
+            $query->quoteName("userinformation_userprofile")
+        );
+
+        $query->set(array(
+            $query->quoteName("user_id_id") . " = " . $query->quote($last_user_id),
+        ));
+
+        $query->setInsert();
+
+        if ($query->db->errno) {
             return false;
         }
 
-        return $lastid;
+
+        return $last_user_id;
     }
 
     /**
@@ -302,7 +336,8 @@ class query
      * @param $data
      * @return bool
      */
-    public function registerFaceBook($data){
+    public function registerFaceBook($name,$data)
+    {
         $query = $this->_query;
 
         $query->getQuery();
@@ -312,15 +347,16 @@ class query
         );
 
         $query->set(array(
-            $query->quoteName("username")." = ".$query->quote($data->id),
-            $query->quoteName("password")." = ".$query->quote(password::make_password(md5(uniqid(rand(), true)))),
-            $query->quoteName("date_joined")." = ".$query->quote(date("Y-m-d H:i:s")),
-            $query->quoteName("is_active")." = ".$query->quote("1"),
+            $query->quoteName("username") . " = " . $query->quote($data->id),
+            $query->quoteName("first_name") . " = " . $query->quote($name),
+            $query->quoteName("password") . " = " . $query->quote(password::make_password(md5(uniqid(rand(), true)))),
+            $query->quoteName("date_joined") . " = " . $query->quote(date("Y-m-d H:i:s")),
+            $query->quoteName("is_active") . " = " . $query->quote("1"),
         ));
 
         $last_user_id = $query->setInsert();
 
-        if($query->db->errno){
+        if ($query->db->errno || $last_user_id) {
             return false;
         }
 
@@ -331,15 +367,34 @@ class query
         );
 
         $query->set(array(
-            $query->quoteName("provider")." = ".$query->quote("facebook"),
-            $query->quoteName("uid")." = ".$query->quote($data->id),
-            $query->quoteName("extra_data")." = ".$query->quote(json_encode($data)),
-            $query->quoteName("user_id")." = ".$query->quote($last_user_id)
+            $query->quoteName("provider") . " = " . $query->quote("facebook"),
+            $query->quoteName("uid") . " = " . $query->quote($data->id),
+            $query->quoteName("extra_data") . " = " . $query->quote(json_encode($data)),
+            $query->quoteName("user_id") . " = " . $query->quote($last_user_id)
         ));
 
         $check = $query->setInsert();
 
-        if($query->db->errno || !$check){
+        if ($query->db->errno || !$check) {
+            return false;
+        }
+
+        /*
+        * Insert profile with user
+        */
+        $query->getQuery();
+
+        $query->insert(
+            $query->quoteName("userinformation_userprofile")
+        );
+
+        $query->set(array(
+            $query->quoteName("user_id_id") . " = " . $query->quote($last_user_id),
+        ));
+
+        $query->setInsert();
+
+        if ($query->db->errno) {
             return false;
         }
 
@@ -354,7 +409,8 @@ class query
      * @return bool
      * @throws RuntimeException
      */
-    public function getUserIdByFB($fb_id){
+    public function getUserIdByFB($fb_id)
+    {
         $query = $this->_query;
 
         $query->getQuery();
@@ -368,7 +424,7 @@ class query
         );
 
         $query->where(array(
-            $query->quoteName("social.uid")." = ".$query->quote($fb_id)
+            $query->quoteName("social.uid") . " = " . $query->quote($fb_id)
         ));
 
         $query->setQuery();
@@ -381,6 +437,82 @@ class query
 
         return false;
     }
+
+
+    /**
+     * @param $user_id
+     * @param $password
+     * @return bool
+     * @throws RuntimeException
+     */
+    public function checkPassById($user_id, $password)
+    {
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query->select(array(
+            $query->quoteName("user.password"),
+        ));
+
+        $query->from(
+            $query->quoteName("auth_user", "user")
+        );
+
+        $query->where(
+            $query->quoteName("id") . " = " . $query->quote($user_id)
+        );
+
+        $query->setQuery();
+
+        $oldPass = $query->loadResult();
+
+
+        if (!$oldPass) {
+            return false;
+        }
+
+        if (!password::verify_Password($oldPass, $password)) {
+            return false;
+        }
+
+        return true;
+    }
+
+
+    /**
+     *
+     * @param $user_id
+     * @param $password
+     * @return bool
+     */
+    public function change_pass($user_id, $password)
+    {
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query->update(
+            $query->quoteName("auth_user")
+        );
+
+        $query->set(
+            $query->quoteName("password") . " = " . $query->quote(password::make_password($password))
+        );
+
+        $query->where(array(
+            $query->quoteName("id") . " = " . $query->quote($user_id),
+        ));
+
+        $update = $query->setUpdate();
+
+        if (!$update) {
+            return false;
+        }
+
+        return true;
+    }
+
     /**
      * @param $name
      * @return null

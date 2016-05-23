@@ -1,11 +1,19 @@
 <?php
+/**
+ * Class là controller chính giúp quản lý các request truyền lên và xử lý
+ */
 namespace max_api\api;
 
 use max_api\contracts\api;
 use max_api\contracts\config;
-use max_api\database\database;
+use max_api\contracts\guid;
+use max_api\contracts\sftp;
 use max_api\database\query;
 
+/**
+ * Class maxApi
+ * @package max_api\api
+ */
 class maxApi extends api
 {
 
@@ -213,6 +221,8 @@ class maxApi extends api
 
 
                 break;
+
+            // login with phone or username
             case "phone":
                 if (!$username || !$password):
                     $return = array(
@@ -273,6 +283,8 @@ class maxApi extends api
 
         $token = $this->_request['token'];
 
+        $name = $this->_request['name'];
+
         $username = $this->_request['username'];
 
         $password = $this->_request['password'];
@@ -310,7 +322,7 @@ class maxApi extends api
         switch ($type) {
             case "facebook":
 
-                if (!$data):
+                if (!$data || !$name):
                     $return = array(
                         "success" => false,
                         "errorCode" => "max01",
@@ -319,7 +331,7 @@ class maxApi extends api
                     return $this->response($this->json($return), 400);
                 endif;
 
-                $register = $query->registerFaceBook($data);
+                $register = $query->registerFaceBook($name, $data);
 
                 if (!$register):
                     $return = array(
@@ -346,7 +358,7 @@ class maxApi extends api
              * Type Phone
              */
             case "phone":
-                if (!$username || !$password) :
+                if (!$name || !$username || !$password) :
                     $return = array(
                         "success" => false,
                         "errorCode" => "max01",
@@ -356,6 +368,7 @@ class maxApi extends api
                 endif;
 
                 $data = [
+                    "first_name" => $name,
                     "username" => $username,
                     "password" => $password
                 ];
@@ -390,6 +403,130 @@ class maxApi extends api
 
     }
 
+    /**
+     * Thay đổi mật khẩu
+     */
+    public function change_pass()
+    {
+        $query = new query();
+        $token = $this->_request['token'];
+        $userId = $this->_request['user_id'];
+        $passOld = $this->_request['pass_old'];
+        $passNew = $this->_request['pass_new'];
+
+        $check = $query->checkToken($token);
+
+        if (!$check):
+            $return = array(
+                "success" => false,
+                "errorCode" => "max04",
+            );
+
+            return $this->response($this->json($return), 400);
+        endif; //end check
+
+        if (!$passNew || !$passOld || !$userId):
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        endif; //end passnew pass old
+
+        if (!$query->checkPassById($userId, $passOld)):
+            $return = array(
+                "success" => false,
+                "errorCode" => "max10",
+            );
+
+            return $this->response($this->json($return), 400);
+        endif;
+
+        if (!$query->change_pass($userId, $passOld)):
+            $return = array(
+                "success" => false,
+                "errorCode" => "max07",
+                "error_list" => $query->__get("_query")->error_list
+            );
+
+            return $this->response($this->json($return), 400);
+        endif;
+
+        $return = [
+            "success" => true,
+            "messages" => "Change pass success"
+        ];
+
+        /** @var TYPE_NAME $this */
+        return $this->response($this->json($return));
+    }
+
+    public function upload_avatar()
+    {
+        $user_id = $this->_request['user_id'];
+
+        $config = config::get('sftp');
+
+        try {
+
+            if (!isset($_FILES['avatar']['error']) || is_array($_FILES['avatar']['error'])) {
+                throw new RuntimeException('Invalid parameters.');
+            }
+
+            // Check $_FILES['upfile']['error'] value.
+            switch ($_FILES['avatar']['error']) {
+                case UPLOAD_ERR_OK:
+                    break;
+                case UPLOAD_ERR_NO_FILE:
+                    throw new RuntimeException('No file sent.');
+                case UPLOAD_ERR_INI_SIZE:
+                case UPLOAD_ERR_FORM_SIZE:
+                    throw new RuntimeException('Exceeded filesize limit.');
+                default:
+                    throw new RuntimeException('Unknown errors.');
+            }
+
+            // You should also check filesize here.
+            if ($_FILES['avatar']['size'] > (float)$config['upload']['size']['avatar']) {
+                throw new RuntimeException('Exceeded filesize limit.');
+            }
+
+            // DO NOT TRUST $_FILES['upfile']['mime'] VALUE !!
+            // Check MIME Type by yourself.
+
+            if (false === $ext = array_search(
+                    $_FILES['avatar']['type'],
+                    $config['upload']['type'],
+                    true
+                )
+            ) {
+                throw new RuntimeException('Invalid file format.');
+            }
+
+            // You should name it uniquely.
+            // DO NOT USE $_FILES['upfile']['name'] WITHOUT ANY VALIDATION !!
+            // On this example, obtain safe unique name from its binary data.
+
+            $upload = sprintf($config['dir'], "avatar", $user_id, guid::get(), $ext);
+
+            $sftp = new sftp();
+
+            if(!$sftp->uploadFile($_FILES['avatar']['tmp_name'],$upload)){
+                throw new RuntimeException('Upload error');
+            }
+
+            return $this->response($this->json('thanh cong'));
+
+        } catch (RuntimeException $e) {
+
+            return $this->response($this->json($e));
+
+        }
+
+
+
+    }
 
     /*
     *	Encode array into JSON
