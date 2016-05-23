@@ -7,7 +7,6 @@ namespace max_api\api;
 use max_api\contracts\api;
 use max_api\contracts\config;
 use max_api\contracts\guid;
-use max_api\contracts\sftp;
 use max_api\database\query;
 
 
@@ -462,13 +461,97 @@ class maxApi extends api
         return $this->response($this->json($return));
     }
 
+    /**
+     * Sửa thông tin cá nhân
+     */
+    public function update_profile()
+    {
+        $query = new query();
+
+        $token = $this->_request['token'];
+
+        $check = $query->checkToken($token);
+
+        if (!$check) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max04",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        /*
+         * Get Data Form
+         */
+        $user_id = $this->_request['user_id'];
+
+        $name = $this->_request['name'];
+
+        $email = $this->_request['email'];
+
+        $phone = $this->_request['phone'];
+
+
+        if (!$user_id || !$name || !$email || !$phone):
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        endif;
+
+        $data = [
+            "first_name" => $name,
+            "email" => $email,
+            "phone" => $phone,
+        ];
+
+        if (!$query->updateProfile($user_id, $data)):
+            $return = array(
+                "success" => false,
+                "errorCode" => "max07",
+            );
+
+            return $this->response($this->json($return), 400);
+        endif;
+
+        $return = array(
+            "success" => true,
+
+            "data" => [
+                "id" => $user_id,
+                "message" => "Update success"
+            ],
+        );
+
+        return $this->response($this->json($return), 400);
+    }
 
     /**
      * Upload image avatar
      */
     public function upload_avatar()
     {
+
+        $query = new query();
+
         $user_id = $this->_request['user_id'];
+
+        $token = $this->_request['token'];
+
+        $check = $query->checkToken($token);
+
+        if (!$check) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max04",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
 
         $config = config::get('sftp');
 
@@ -559,15 +642,16 @@ class maxApi extends api
                 return $this->response($this->json($return), 400);
             }
 
-            if (!$sftp->mkdir($dirUp)) {
-                $return = [
-                    "success" => false,
-                    "errorCode" => "max15"
-                ];
+            if (!$sftp->is_dir($dirUp)) {
+                if (!$sftp->mkdir($dirUp)) {
+                    $return = [
+                        "success" => false,
+                        "errorCode" => "max15"
+                    ];
 
-                return $this->response($this->json($return), 400);
+                    return $this->response($this->json($return), 400);
+                }
             }
-
             // puts an x-byte file named filename.remote on the SFTP server,
             if (!$sftp->put($upload, $_FILES['avatar']['tmp_name'], NET_SFTP_LOCAL_FILE)) {
                 $return = [
@@ -578,9 +662,8 @@ class maxApi extends api
                 return $this->response($this->json($return), 400);
             };
 
-            $query = new query();
 
-            if(!$query->updateAvatar($user_id,$url)){
+            if (!$query->updateAvatar($user_id, $url)) {
                 $return = [
                     "success" => false,
                     "errorCode" => "max18",

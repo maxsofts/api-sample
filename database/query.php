@@ -216,7 +216,7 @@ class query
         );
 
         $query->set(array(
-           $query->quoteName('last_login')." = ".$query->quote(date("Y-m-d H:i:s"))
+            $query->quoteName('last_login') . " = " . $query->quote(date("Y-m-d H:i:s"))
         ));
 
         $query->setUpdate();
@@ -336,7 +336,7 @@ class query
      * @param $data
      * @return bool
      */
-    public function registerFaceBook($name,$data)
+    public function registerFaceBook($name, $data)
     {
         $query = $this->_query;
 
@@ -513,7 +513,13 @@ class query
         return true;
     }
 
-    public function updateAvatar($user_id,$path){
+    /**
+     * @param $user_id
+     * @param $path
+     * @return bool
+     */
+    public function updateAvatar($user_id, $path)
+    {
         $query = $this->_query;
 
         $query->getQuery();
@@ -527,7 +533,61 @@ class query
         );
 
         $query->where(array(
+            $query->quoteName("user_id_id") . " = " . $query->quote($user_id),
+        ));
+
+        $update = $query->setUpdate();
+
+        if (!$update) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * @param $user_id
+     * @param $data
+     * @return bool
+     */
+    public function updateProfile($user_id, $data)
+    {
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query->update(
+            $query->quoteName("auth_user")
+        );
+
+        $query->set(array(
+                $query->quoteName("email") . " = " . $query->quote($data['email']),
+                $query->quoteName("first_name") . " = " . $query->quote($data['first_name'])
+            )
+        );
+
+        $query->where(array(
             $query->quoteName("id") . " = " . $query->quote($user_id),
+        ));
+
+        $update = $query->setUpdate();
+
+        if (!$update) {
+            return false;
+        }
+
+        $query->getQuery();
+
+        $query->update(
+            $query->quoteName("userinformation_userprofile")
+        );
+
+        $query->set(
+            $query->quoteName("phone") . " = " . $query->quote($data['phone'])
+        );
+
+        $query->where(array(
+            $query->quoteName("user_id_id") . " = " . $query->quote($user_id),
         ));
 
         $update = $query->setUpdate();
