@@ -513,6 +513,32 @@ class query
         return true;
     }
 
+    public function updateAvatar($user_id,$path){
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query->update(
+            $query->quoteName("userinformation_userprofile")
+        );
+
+        $query->set(
+            $query->quoteName("avatar_url") . " = " . $query->quote($path)
+        );
+
+        $query->where(array(
+            $query->quoteName("id") . " = " . $query->quote($user_id),
+        ));
+
+        $update = $query->setUpdate();
+
+        if (!$update) {
+            return false;
+        }
+
+        return true;
+    }
+
     /**
      * @param $name
      * @return null

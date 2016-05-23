@@ -6,7 +6,6 @@ class sftp
 {
     private $connection;
     private $sftp;
-
     public $error;
 
     public function __construct()
@@ -25,6 +24,7 @@ class sftp
 
     public function login($username, $password)
     {
+
         if (!@ssh2_auth_password($this->connection, $username, $password))
             throw new Exception("Could not authenticate with username $username " .
                 "and password $password.");

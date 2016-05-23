@@ -10,6 +10,7 @@ use max_api\contracts\guid;
 use max_api\contracts\sftp;
 use max_api\database\query;
 
+
 /**
  * Class maxApi
  * @package max_api\api
@@ -19,7 +20,6 @@ class maxApi extends api
 
     public function __construct()
     {
-
         parent::__construct();
     }
 
@@ -462,6 +462,10 @@ class maxApi extends api
         return $this->response($this->json($return));
     }
 
+
+    /**
+     * Upload image avatar
+     */
     public function upload_avatar()
     {
         $user_id = $this->_request['user_id'];
@@ -471,7 +475,12 @@ class maxApi extends api
         try {
 
             if (!isset($_FILES['avatar']['error']) || is_array($_FILES['avatar']['error'])) {
-                throw new RuntimeException('Invalid parameters.');
+                $return = [
+                    "success" => false,
+                    "errorCode" => "max11"
+                ];
+
+                return $this->response($this->json($return), 400);
             }
 
             // Check $_FILES['upfile']['error'] value.
@@ -479,17 +488,37 @@ class maxApi extends api
                 case UPLOAD_ERR_OK:
                     break;
                 case UPLOAD_ERR_NO_FILE:
-                    throw new RuntimeException('No file sent.');
+                    $return = [
+                        "success" => false,
+                        "errorCode" => "max11"
+                    ];
+
+                    return $this->response($this->json($return), 400);
                 case UPLOAD_ERR_INI_SIZE:
                 case UPLOAD_ERR_FORM_SIZE:
-                    throw new RuntimeException('Exceeded filesize limit.');
+                    $return = [
+                        "success" => false,
+                        "errorCode" => "max12"
+                    ];
+
+                    return $this->response($this->json($return), 400);
                 default:
-                    throw new RuntimeException('Unknown errors.');
+                    $return = [
+                        "success" => false,
+                        "errorCode" => "max13"
+                    ];
+
+                    return $this->response($this->json($return), 400);
             }
 
             // You should also check filesize here.
             if ($_FILES['avatar']['size'] > (float)$config['upload']['size']['avatar']) {
-                throw new RuntimeException('Exceeded filesize limit.');
+                $return = [
+                    "success" => false,
+                    "errorCode" => "max12"
+                ];
+
+                return $this->response($this->json($return), 400);
             }
 
             // DO NOT TRUST $_FILES['upfile']['mime'] VALUE !!
@@ -501,29 +530,85 @@ class maxApi extends api
                     true
                 )
             ) {
-                throw new RuntimeException('Invalid file format.');
+                $return = [
+                    "success" => false,
+                    "errorCode" => "max14"
+                ];
+
+                return $this->response($this->json($return), 400);
             }
 
             // You should name it uniquely.
             // DO NOT USE $_FILES['upfile']['name'] WITHOUT ANY VALIDATION !!
             // On this example, obtain safe unique name from its binary data.
 
-            $upload = sprintf($config['dir'], "avatar", $user_id, guid::get(), $ext);
+            $nameImage = guid::get();
 
-            $sftp = new sftp();
+            $upload = sprintf($config['upload']['dir'], "avatar", $user_id, $nameImage, $ext);
+            $url = sprintf($config['upload']['url'], "avatar", $user_id, $nameImage, $ext);
+            $dirUp = sprintf($config['upload']['dir_base'], "avatar", $user_id);
 
-            if(!$sftp->uploadFile($_FILES['avatar']['tmp_name'],$upload)){
-                throw new RuntimeException('Upload error');
+
+            $sftp = new \Net_SFTP($config['sftp']['host']);
+            if (!$sftp->login($config['sftp']['username'], $config['sftp']['password'])) {
+                $return = [
+                    "success" => false,
+                    "errorCode" => "max16"
+                ];
+
+                return $this->response($this->json($return), 400);
             }
 
-            return $this->response($this->json('thanh cong'));
+            if (!$sftp->mkdir($dirUp)) {
+                $return = [
+                    "success" => false,
+                    "errorCode" => "max15"
+                ];
+
+                return $this->response($this->json($return), 400);
+            }
+
+            // puts an x-byte file named filename.remote on the SFTP server,
+            if (!$sftp->put($upload, $_FILES['avatar']['tmp_name'], NET_SFTP_LOCAL_FILE)) {
+                $return = [
+                    "success" => false,
+                    "errorCode" => "max17"
+                ];
+
+                return $this->response($this->json($return), 400);
+            };
+
+            $query = new query();
+
+            if(!$query->updateAvatar($user_id,$url)){
+                $return = [
+                    "success" => false,
+                    "errorCode" => "max18",
+                    "url" => $url
+                ];
+
+                return $this->response($this->json($return), 400);
+            }
+
+            $return = [
+                "success" => true,
+                "data" => [
+                    "url" => $url
+                ]
+            ];
+
+            return $this->response($this->json($return));
+
 
         } catch (RuntimeException $e) {
+            $return = [
+                "success" => false,
+                "error" => "max13"
+            ];
 
-            return $this->response($this->json($e));
+            return $this->response($this->json($return), 400);
 
         }
-
 
 
     }

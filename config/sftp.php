@@ -19,6 +19,10 @@ return [
             'post' => '',
         ],
 
-        'dir' => '/nghienapi/nghienbongda/media/%s/%s/%s.%s'
+        'dir_base' => '/home/khanhdq/nghienapi/nghienbongda/media/%s/%s/',
+
+        'dir' => '/home/khanhdq/nghienapi/nghienbongda/media/%s/%s/%s.%s',
+
+        'url' => 'http://gbd.maxsoft.vn/media/%s/%s/%s.%s'
     ],
 ];
