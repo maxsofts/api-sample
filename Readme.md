@@ -82,3 +82,49 @@ $.ajax({
     }
 });
 ```
+Thông tin dữ liệu trả về
+
+```php
+{
+    "success":true,
+    "data":{
+        "id":"2",
+        }
+}
+```
+
+#Đăng nhập Bằng Phone
+```php
+$.ajax({
+    url:'http://<Đường dẫn của bạn đến thư mục>/',
+    dataType:'json',
+    data:{
+        'action':'login',
+        'token' : '<mã token được cung cấp>',   // mã token đã lấy ở trên
+        'type': 'phone',
+        'username':'<Số điện thoại>',
+        'password':'<Mật khẩu>'
+    },
+    success:function(results){
+        console.log(results); //Dữ liệu trả về
+    }
+});
+```
+#Đăng nhập bằng Facebook
+
+Sau khi xác nhận tài khoản từ API Facebook truyền lên ID của facebook
+```php
+$.ajax({
+    url:'http://<Đường dẫn của bạn đến thư mục>/',
+    dataType:'json',
+    data:{
+        'action':'login',
+        'token' : '<mã token được cung cấp>',   // mã token đã lấy ở trên
+        'type': 'facebook',
+        'fb_id':'<facebook_id>',
+    },
+    success:function(results){
+        console.log(results); //Dữ liệu trả về
+    }
+});
+```
