@@ -695,7 +695,6 @@ class maxDatabase extends db
             return $this->sql;
         }
 
-
         switch ($this->type) {
             case 'element':
                 $query .= (string)$this->element;

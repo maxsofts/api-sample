@@ -3,6 +3,7 @@
 namespace max_api\database;
 
 use max_api\contracts\password;
+use RuntimeException;
 
 /**
  * Class database
@@ -197,7 +198,7 @@ class query
 
         $query->setQuery();
 
-        $user = $query->loadObjects();
+        $user = $query->loadObject();
 
 
         if (!$user->password) {
@@ -275,7 +276,7 @@ class query
             return false;
         }
 
-        return $query->loadObjects();
+        return $query->loadObject();
     }
 
 
@@ -491,7 +492,7 @@ class query
      * @param $password
      * @return bool
      */
-    public function change_pass($user_id, $password)
+    public function changePass($user_id, $password)
     {
         $query = $this->_query;
 
@@ -612,7 +613,7 @@ class query
      * @return bool|mixed
      * @throws RuntimeException
      */
-    public function get_user($limit, $offset, $order)
+    public function getUsers($limit, $offset, $order)
     {
         $query = $this->_query;
 
@@ -645,6 +646,125 @@ class query
 
         $query->setQuery();
 
+
+        $list = $query->loadObjects();
+
+        if (!$list) {
+            return false;
+        }
+
+        return $list;
+    }
+
+
+    /**
+     * @return bool|mixed
+     * @throws RuntimeException
+     */
+    public function getMenusMobile()
+    {
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query
+            ->select([
+                $query->quoteName("category.id"),
+                $query->quoteName("category.title"),
+                $query->quoteName("category.class_icon"),
+                $query->quoteName("category.parent_id"),
+                $query->quoteName("category.level"),
+                $query->quoteName("category.lft"),
+                $query->quoteName("category.rght"),
+                $query->quoteName("category.tree_id"),
+                $query->quoteName("category.orderNumber"),
+            ])
+            ->from(
+                $query->quoteName("content_contentcategory", "category")
+            )
+            ->where(
+                $query->quoteName("category.is_menu_mobile") . " = 1"
+            )
+            ->order("orderNumber DESC");
+
+        $query->setQuery();
+
+        $list = $query->loadObjects();
+
+        if (!$list) {
+            return false;
+        }
+
+        return $list;
+    }
+
+
+    /**
+     * @return bool|mixed
+     * @throws \max_api\database\RuntimeException
+     */
+    public function getCategories()
+    {
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query
+            ->select([
+                $query->quoteName("category.id"),
+                $query->quoteName("category.title"),
+                $query->quoteName("category.class_icon"),
+                $query->quoteName("category.parent_id"),
+                $query->quoteName("category.level"),
+                $query->quoteName("category.lft"),
+                $query->quoteName("category.rght"),
+                $query->quoteName("category.tree_id"),
+                $query->quoteName("category.orderNumber"),
+            ])
+            ->from(
+                $query->quoteName("content_contentcategory", "category")
+            )
+            ->order("orderNumber ASC");
+
+        $query->setQuery();
+
+        $list = $query->loadObjects();
+
+        if (!$list) {
+            return false;
+        }
+
+        return $list;
+    }
+
+
+    /**
+     * @param $category_id
+     * @param $limit
+     * @param $offset
+     * @return bool|mixed
+     * @throws \max_api\database\RuntimeException
+     */
+    public function getContentsByCategory($category_id, $limit, $offset)
+    {
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query
+            ->select("*")
+            ->from(
+                $query->quoteName("content_content", "content")
+            )
+            ->where(
+                $query->quoteName("content.parent_id") . " = " . $query->quote($category_id)
+            )
+            ->order(
+                $query->quoteName("content.publicDate") . " DESC"
+            )
+            ->setLimit($limit, $offset);
+
+        $query->setQuery();
 
         $list = $query->loadObjects();
 

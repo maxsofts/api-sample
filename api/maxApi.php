@@ -441,7 +441,7 @@ class maxApi extends api
             return $this->response($this->json($return), 400);
         endif;
 
-        if (!$query->change_pass($userId, $passOld)):
+        if (!$query->changePass($userId, $passOld)):
             $return = array(
                 "success" => false,
                 "errorCode" => "max07",
@@ -709,10 +709,10 @@ class maxApi extends api
         $check = $query->checkToken($token);
 
         if (!$check) {
-            $return = array(
+            $return = [
                 "success" => false,
                 "errorCode" => "max04",
-            );
+            ];
 
             return $this->response($this->json($return), 400);
         }
@@ -723,14 +723,14 @@ class maxApi extends api
 
         $order = $this->_request['order'] ? $this->_request['order'] : "point DESC";
 
-        $listUser = $query->get_user($limit, $offset,$order);
+        $listUser = $query->getUsers($limit, $offset, $order);
 
         if (!$listUser) {
-            $return = array(
+            $return = [
                 "success" => false,
                 "errorCode" => "max19",
                 "error_list" => $query->__get("_query")->error_list
-            );
+            ];
             return $this->response($this->json($return), 400);
         }
 
@@ -740,6 +740,143 @@ class maxApi extends api
         ];
 
         return $this->response($this->json($return), 400);
+    }
+
+    /**
+     * Lấy dữ liệu menu
+     */
+    public function get_menus()
+    {
+        $query = new query();
+
+        $token = $this->_request['token'];
+
+        $check = $query->checkToken($token);
+
+        if (!$check) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max04",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $menu = $query->getMenusMobile();
+
+        if (!$menu) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max19",
+                "error_list" => $query->__get("_query")->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "data" => $menu
+        ];
+
+        return $this->response($this->json($return), 400);
+    }
+
+
+    /**
+     * Lấy toàn bộ các danh mục
+     */
+    public function get_categories()
+    {
+        $query = new query();
+
+        $token = $this->_request['token'];
+
+        $check = $query->checkToken($token);
+
+        if (!$check) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max04",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $category = $query->getCategories();
+
+        if (!$category) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max19",
+                "error_list" => $query->__get("_query")->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "data" => $category
+        ];
+
+        return $this->response($this->json($return));
+    }
+
+
+    /**
+     * Lấy danh sách bài viết
+     */
+    public function get_contents_by_category(){
+        $query = new query();
+
+        $token = $this->_request['token'];
+
+        $check = $query->checkToken($token);
+
+        if (!$check) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max04",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $cat_id = $this->_request['cat_id'];
+
+        $limit = $this->_request['limit'] ? $this->_request['limit'] : 10;
+
+        $offset = $this->_request['offset'] ? $this->_request['offset'] : 0;
+
+
+        if (!$cat_id):
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        endif;
+
+        $content = $query->getContentsByCategory($cat_id,$limit,$offset);
+
+        if (!$content) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max19",
+                "error_list" => $query->__get("_query")->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "data" => $content
+        ];
+
+        return $this->response($this->json($return));
     }
 
     /*
