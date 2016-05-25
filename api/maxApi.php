@@ -8,6 +8,9 @@ use max_api\contracts\api;
 use max_api\contracts\config;
 use max_api\contracts\guid;
 use max_api\database\query;
+use max_api\model\categories;
+use max_api\model\contents;
+use max_api\model\users;
 
 
 /**
@@ -142,7 +145,7 @@ class maxApi extends api
      */
     public function login()
     {
-        $query = new query();
+        $users = new users();
 
         $typeBase = config::get("register");
 
@@ -152,7 +155,9 @@ class maxApi extends api
 
         $password = $this->_request['password'];
 
-        $fb_id = $this->_request['fb_id'];
+        $name = $this->_request['name'];
+
+        $data = json_decode($this->_request['data']);
 
         $type = $this->_request['type'];
 
@@ -166,7 +171,7 @@ class maxApi extends api
             return $this->response($this->json($return), 400);
         }
 
-        $check = $query->checkToken($token);
+        $check = $users->checkToken($token);
 
         if (!$check) {
             $return = array(
@@ -180,7 +185,7 @@ class maxApi extends api
 
         switch ($type) {
             case "facebook":
-                if (!$fb_id):
+                if (!$data || !$name):
                     $return = array(
                         "success" => false,
                         "errorCode" => "max01",
@@ -189,18 +194,26 @@ class maxApi extends api
                     return $this->response($this->json($return), 400);
                 endif;
 
-                $user_id = $query->getUserIdByFB($fb_id);
+                //Kiểm tra id facebook đã được đăng ký chưa
+                $user_id = $users->getUserIdByFB($data->id);
 
                 if (!$user_id):
-                    $return = array(
-                        "success" => false,
-                        "errorCode" => "max09",
-                    );
+                    //đăng ký tài khoản facebook nếu chưa có
+                    $user_id = $users->registerFaceBook($name, $data);
 
-                    return $this->response($this->json($return), 400);
+                    if (!$user_id):
+                        $return = array(
+                            "success" => false,
+                            "errorCode" => "max07",
+                            "error_list" => $users->__get("_query")->error_list
+                        );
+
+                        return $this->response($this->json($return), 400);
+
+                    endif;
                 endif;
 
-                $profile = $query->getInfoUser($user_id);
+                $profile = $users->getInfoUser($user_id);
 
                 if (!$profile) :
                     $return = array(
@@ -230,7 +243,7 @@ class maxApi extends api
 
                     return $this->response($this->json($return), 400);
                 endif;
-                $auth = $query->auth($username, $password);
+                $auth = $users->auth($username, $password);
 
                 if (!$auth) :
                     $return = array(
@@ -241,7 +254,7 @@ class maxApi extends api
                     return $this->response($this->json($return), 400);
                 endif;
 
-                $profile = $query->getInfoUser($auth);
+                $profile = $users->getInfoUser($auth);
 
                 if (!$profile) :
                     $return = array(
@@ -275,7 +288,7 @@ class maxApi extends api
      */
     public function register()
     {
-        $query = new query();
+        $users = new users();
 
         $typeBase = config::get("register");
 
@@ -304,7 +317,7 @@ class maxApi extends api
             return $this->response($this->json($return), 400);
         }
 
-        $check = $query->checkToken($token);
+        $check = $users->checkToken($token);
 
         if (!$check) {
             $return = array(
@@ -329,13 +342,13 @@ class maxApi extends api
                     return $this->response($this->json($return), 400);
                 endif;
 
-                $register = $query->registerFaceBook($name, $data);
+                $register = $users->registerFaceBook($name, $data);
 
                 if (!$register):
                     $return = array(
                         "success" => false,
                         "errorCode" => "max07",
-                        "error_list" => $query->__get("_query")->error_list
+                        "error_list" => $users->__get("_query")->error_list
                     );
 
                     return $this->response($this->json($return), 400);
@@ -371,13 +384,13 @@ class maxApi extends api
                     "password" => $password
                 ];
 
-                $register = $query->register($data);
+                $register = $users->register($data);
 
                 if (!$register):
                     $return = array(
                         "success" => false,
                         "errorCode" => "max07",
-                        "error_list" => $query->__get("_query")->error_list
+                        "error_list" => $users->__get("_query")->error_list
                     );
 
                     return $this->response($this->json($return), 400);
@@ -406,13 +419,13 @@ class maxApi extends api
      */
     public function change_pass()
     {
-        $query = new query();
+        $users = new user();
         $token = $this->_request['token'];
         $userId = $this->_request['user_id'];
         $passOld = $this->_request['pass_old'];
         $passNew = $this->_request['pass_new'];
 
-        $check = $query->checkToken($token);
+        $check = $users->checkToken($token);
 
         if (!$check):
             $return = array(
@@ -432,7 +445,7 @@ class maxApi extends api
             return $this->response($this->json($return), 400);
         endif; //end passnew pass old
 
-        if (!$query->checkPassById($userId, $passOld)):
+        if (!$users->checkPassById($userId, $passOld)):
             $return = array(
                 "success" => false,
                 "errorCode" => "max10",
@@ -441,11 +454,11 @@ class maxApi extends api
             return $this->response($this->json($return), 400);
         endif;
 
-        if (!$query->changePass($userId, $passOld)):
+        if (!$users->changePass($userId, $passOld)):
             $return = array(
                 "success" => false,
                 "errorCode" => "max07",
-                "error_list" => $query->__get("_query")->error_list
+                "error_list" => $users->__get("_query")->error_list
             );
 
             return $this->response($this->json($return), 400);
@@ -465,11 +478,11 @@ class maxApi extends api
      */
     public function update_profile()
     {
-        $query = new query();
+        $users = new user();
 
         $token = $this->_request['token'];
 
-        $check = $query->checkToken($token);
+        $check = $users->checkToken($token);
 
         if (!$check) {
             $return = array(
@@ -507,7 +520,7 @@ class maxApi extends api
             "phone" => $phone,
         ];
 
-        if (!$query->updateProfile($user_id, $data)):
+        if (!$users->updateProfile($user_id, $data)):
             $return = array(
                 "success" => false,
                 "errorCode" => "max07",
@@ -534,13 +547,13 @@ class maxApi extends api
     public function upload_avatar()
     {
 
-        $query = new query();
+        $users = new user();
 
         $user_id = $this->_request['user_id'];
 
         $token = $this->_request['token'];
 
-        $check = $query->checkToken($token);
+        $check = $users->checkToken($token);
 
         if (!$check) {
             $return = array(
@@ -662,7 +675,7 @@ class maxApi extends api
             };
 
 
-            if (!$query->updateAvatar($user_id, $url)) {
+            if (!$users->updateAvatar($user_id, $url)) {
                 $return = [
                     "success" => false,
                     "errorCode" => "max18",
@@ -702,11 +715,11 @@ class maxApi extends api
     public function get_users()
     {
 
-        $query = new query();
+        $users = new user();
 
         $token = $this->_request['token'];
 
-        $check = $query->checkToken($token);
+        $check = $users->checkToken($token);
 
         if (!$check) {
             $return = [
@@ -723,13 +736,13 @@ class maxApi extends api
 
         $order = $this->_request['order'] ? $this->_request['order'] : "point DESC";
 
-        $listUser = $query->getUsers($limit, $offset, $order);
+        $listUser = $users->getUsers($limit, $offset, $order);
 
         if (!$listUser) {
             $return = [
                 "success" => false,
                 "errorCode" => "max19",
-                "error_list" => $query->__get("_query")->error_list
+                "error_list" => $users->__get("_query")->error_list
             ];
             return $this->response($this->json($return), 400);
         }
@@ -747,11 +760,11 @@ class maxApi extends api
      */
     public function get_menus()
     {
-        $query = new query();
+        $categories = new categories();
 
         $token = $this->_request['token'];
 
-        $check = $query->checkToken($token);
+        $check = $categories->checkToken($token);
 
         if (!$check) {
             $return = [
@@ -762,13 +775,13 @@ class maxApi extends api
             return $this->response($this->json($return), 400);
         }
 
-        $menu = $query->getMenusMobile();
+        $menu = $categories->getMenusMobile();
 
         if (!$menu) {
             $return = [
                 "success" => false,
                 "errorCode" => "max19",
-                "error_list" => $query->__get("_query")->error_list
+                "error_list" => $categories->__get("_query")->error_list
             ];
 
             return $this->response($this->json($return), 400);
@@ -788,11 +801,11 @@ class maxApi extends api
      */
     public function get_categories()
     {
-        $query = new query();
+        $categories = new categories();
 
         $token = $this->_request['token'];
 
-        $check = $query->checkToken($token);
+        $check = $categories->checkToken($token);
 
         if (!$check) {
             $return = [
@@ -803,13 +816,13 @@ class maxApi extends api
             return $this->response($this->json($return), 400);
         }
 
-        $category = $query->getCategories();
+        $category = $categories->getCategories();
 
         if (!$category) {
             $return = [
                 "success" => false,
                 "errorCode" => "max19",
-                "error_list" => $query->__get("_query")->error_list
+                "error_list" => $categories->__get("_query")->error_list
             ];
 
             return $this->response($this->json($return), 400);
@@ -825,14 +838,15 @@ class maxApi extends api
 
 
     /**
-     * Lấy danh sách bài viết
+     * Lấy danh sách bài viết theo danh mục
      */
-    public function get_contents_by_category(){
-        $query = new query();
+    public function get_contents_by_category()
+    {
+        $contents = new contents();
 
         $token = $this->_request['token'];
 
-        $check = $query->checkToken($token);
+        $check = $contents->checkToken($token);
 
         if (!$check) {
             $return = [
@@ -859,13 +873,13 @@ class maxApi extends api
             return $this->response($this->json($return), 400);
         endif;
 
-        $content = $query->getContentsByCategory($cat_id,$limit,$offset);
+        $content = $contents->getContentsByCategory($cat_id, $limit, $offset);
 
         if (!$content) {
             $return = [
                 "success" => false,
                 "errorCode" => "max19",
-                "error_list" => $query->__get("_query")->error_list
+                "error_list" => $contents->__get("_query")->error_list
             ];
 
             return $this->response($this->json($return), 400);
@@ -878,6 +892,64 @@ class maxApi extends api
 
         return $this->response($this->json($return));
     }
+
+
+    /**
+     * Lấy danh sách bài viết theo user
+     */
+    public function get_contents_by_user()
+    {
+        $contents = new contents();
+
+        $token = $this->_request['token'];
+
+        $check = $contents->checkToken($token);
+
+        if (!$check) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max04",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $user_id = $this->_request['user_id'];
+
+        $limit = $this->_request['limit'] ? $this->_request['limit'] : 10;
+
+        $offset = $this->_request['offset'] ? $this->_request['offset'] : 0;
+
+
+        if (!$user_id):
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        endif;
+
+        $content = $contents->getContentsByUser($user_id, $limit, $offset);
+
+        if (!$content) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max19",
+                "error_list" => $contents->__get("_query")->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "data" => $content
+        ];
+
+        return $this->response($this->json($return));
+    }
+
 
     /*
     *	Encode array into JSON

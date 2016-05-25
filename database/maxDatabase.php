@@ -556,7 +556,8 @@ class maxDatabase extends db
     /**
      * @return array
      */
-    public function loadArrays(){
+    public function loadArrays()
+    {
         if ($this->data) {
             while ($array = $this->data->fetch_array()) {
                 $return[] = $array;
@@ -578,7 +579,8 @@ class maxDatabase extends db
     /**
      * @return array
      */
-    public function loadAssocs(){
+    public function loadAssocs()
+    {
         if ($this->data) {
             while ($array = $this->data->fetch_assoc()) {
                 $return[] = $array;
@@ -600,7 +602,8 @@ class maxDatabase extends db
     /**
      * @return array
      */
-    public function loadRows(){
+    public function loadRows()
+    {
         if ($this->data) {
             while ($row = $this->data->fetch_row()) {
                 $return[] = $row;
@@ -615,17 +618,19 @@ class maxDatabase extends db
      */
     public function __get($name)
     {
-
         return isset($this->$name) ? $this->$name : null;
     }
 
     /**
      * @param $name
      * @param $value
+     * @return $this
      */
     public function __set($name, $value)
     {
         $this->$name = $value;
+
+        return $this;
     }
 
     /**
@@ -822,7 +827,7 @@ class maxDatabase extends db
      * @param $strArr
      * @return string
      */
-    protected function quoteNameStr($strArr)
+    public function quoteNameStr($strArr)
     {
         $parts = array();
         $q = $this->nameQuote;

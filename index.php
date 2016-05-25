@@ -17,7 +17,9 @@ include('Net/SFTP.php');
  */
 use max_api\api\maxApi;
 
-
+/**
+ * Start app
+ */
 $app = new maxApi();
 /**
  * Initiiate Library
