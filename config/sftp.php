@@ -2,10 +2,10 @@
 
 return [
     'sftp' => [
-        'host' => '42.112.25.31',
-        'port' => '22',
-        'username' => 'khanhdq',
-        'password' => 'KhOnGcHoiduocdau@11F!'
+        'host' => 'xxxxx',
+        'port' => 'xxxxx',
+        'username' => 'xxxxx',
+        'password' => 'xxxxxx'
     ],
 
 
