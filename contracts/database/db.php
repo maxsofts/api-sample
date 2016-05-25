@@ -247,11 +247,21 @@ abstract class db
      */
     abstract public function loadObjects();
 
+    abstract public function loadObject();
+
     abstract public function loadResult();
 
     abstract public function loadArray();
 
+    abstract public function loadArrays();
+
+    abstract public function loadAssoc();
+
+    abstract public function loadAssocs();
+
     abstract public function loadRow();
+
+    abstract public function loadRows();
 
     abstract public function __get($name);
 

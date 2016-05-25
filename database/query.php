@@ -378,7 +378,6 @@ class query
         ));
 
 
-
         $check = $query->setInsert();
 
         if ($query->db->errno || !$check) {
@@ -613,7 +612,8 @@ class query
      * @return bool|mixed
      * @throws RuntimeException
      */
-    public function get_user($limit,$offset,$order){
+    public function get_user($limit, $offset, $order)
+    {
         $query = $this->_query;
 
         $query->getQuery();
@@ -626,7 +626,7 @@ class query
                 $query->quoteName("profile.avatar_url")
             ))
             ->from(
-                $query->quoteName("userinformation_userprofile","profile")
+                $query->quoteName("userinformation_userprofile", "profile")
             )
             //Join User auth
             ->select(array(
@@ -634,29 +634,27 @@ class query
                 $query->quoteName("user.last_name"),
                 $query->quoteName("user.email")
             ))
-            ->join("LEFT","`auth_user` AS `user` ON `user`.`id` =  `profile`.`user_id_id`")
-
+            ->join("LEFT", "`auth_user` AS `user` ON `user`.`id` =  `profile`.`user_id_id`")
             //Join honour
             ->select(array(
-                $query->quoteName("hounour.name","hounour_name"),
+                $query->quoteName("hounour.name", "hounour_name"),
             ))
-            ->join("LEFT","`userinformation_honourable_name` AS `hounour` ON `hounour`.`id` =  `profile`.`honour_id`")
-
-
+            ->join("LEFT", "`userinformation_honourable_name` AS `hounour` ON `hounour`.`id` =  `profile`.`honour_id`")
             ->order($order)
-
-            ->setLimit($limit,$offset);
+            ->setLimit($limit, $offset);
 
         $query->setQuery();
 
+
         $list = $query->loadObjects();
 
-        if(!$list){
+        if (!$list) {
             return false;
         }
 
         return $list;
     }
+
     /**
      * @param $name
      * @return null

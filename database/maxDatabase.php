@@ -22,9 +22,12 @@ class maxDatabase extends db
         $this->dbConnect();
     }
 
+    /**
+     *
+     */
     public function __destruct()
     {
-        // $this->db->close();
+        $this->db->close();
     }
 
     /**
@@ -518,10 +521,26 @@ class maxDatabase extends db
     public function loadObjects()
     {
         if ($this->data) {
+            while ($object = $this->data->fetch_object()) {
+                $return[] = $object;
+            }
+            return $return;
+        }
+    }
+
+    /**
+     * @return mixed
+     */
+    public function loadObject()
+    {
+        if ($this->data) {
             return $this->data->fetch_object();
         }
     }
 
+    /**
+     * @return mixed
+     */
     public function loadResult()
     {
         return $this->loadArray()[0];
@@ -534,6 +553,21 @@ class maxDatabase extends db
         }
     }
 
+    /**
+     * @return array
+     */
+    public function loadArrays(){
+        if ($this->data) {
+            while ($array = $this->data->fetch_array()) {
+                $return[] = $array;
+            }
+            return $return;
+        }
+    }
+
+    /**
+     * @return mixed
+     */
     public function loadAssoc()
     {
         if ($this->data) {
@@ -541,6 +575,21 @@ class maxDatabase extends db
         }
     }
 
+    /**
+     * @return array
+     */
+    public function loadAssocs(){
+        if ($this->data) {
+            while ($array = $this->data->fetch_assoc()) {
+                $return[] = $array;
+            }
+            return $return;
+        }
+    }
+
+    /**
+     * @return mixed
+     */
     public function loadRow()
     {
         if ($this->data) {
@@ -548,17 +597,42 @@ class maxDatabase extends db
         }
     }
 
+    /**
+     * @return array
+     */
+    public function loadRows(){
+        if ($this->data) {
+            while ($row = $this->data->fetch_row()) {
+                $return[] = $row;
+            }
+            return $return;
+        }
+    }
+
+    /**
+     * @param $name
+     * @return null
+     */
     public function __get($name)
     {
 
         return isset($this->$name) ? $this->$name : null;
     }
 
+    /**
+     * @param $name
+     * @param $value
+     */
     public function __set($name, $value)
     {
         $this->$name = $value;
     }
 
+    /**
+     * @param $text
+     * @param bool|true $escape
+     * @return array|string
+     */
     public function quote($text, $escape = true)
     {
 
@@ -573,6 +647,11 @@ class maxDatabase extends db
         }
     }
 
+    /**
+     * @param $name
+     * @param null $as
+     * @return array|string
+     */
     public function quoteName($name, $as = null)
     {
         if (is_string($name)) {
