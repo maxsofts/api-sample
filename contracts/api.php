@@ -19,14 +19,16 @@ class api
     /**
      * api constructor.
      */
-    public function __construct(){
+    public function __construct()
+    {
         $this->inputs();
     }
 
     /**
      * Get request method
      */
-    private function inputs(){
+    private function inputs()
+    {
         switch ($this->get_request_method()) {
             case "POST":
                 $this->_request = $this->cleanInputs($_POST);
@@ -135,4 +137,16 @@ class api
         return ($status[$this->_code]) ? $status[$this->_code] : $status[500];
     }
 
+    /**
+     * Json encode
+     * @param $data
+     * @return string
+     */
+    public function json($data)
+    {
+        if (is_array($data)) {
+            return json_encode($data);
+        }
+        return $data;
+    }
 }

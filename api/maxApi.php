@@ -715,7 +715,7 @@ class maxApi extends api
     public function get_users()
     {
 
-        $users = new user();
+        $users = new users();
 
         $token = $this->_request['token'];
 
@@ -950,16 +950,10 @@ class maxApi extends api
         return $this->response($this->json($return));
     }
 
+    /**
+     * Lấy các comment
+     */
+    public function  get_comment_by_content(){
 
-    /*
-    *	Encode array into JSON
-	*/
-    private function json($data)
-    {
-        if (is_array($data)) {
-            return json_encode($data);
-        }
-        return $data;
     }
-
 }

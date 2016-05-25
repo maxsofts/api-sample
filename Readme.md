@@ -8,7 +8,7 @@ Chi tiết hoạt động API vui lòng xem code :|
 
 #Các hàm đã xây dựng
 
-1. Tạo token
+[1. Tạo token!](# Tạo và lấy token //reset token)
 2. Reset token
 3. Đăng ký
 4. Đăng nhập
@@ -64,24 +64,6 @@ $.ajax({
     }
 });
 ```
-
-Dữ liệu truyền lên với kiểu đăng ký là facebook
-```php
-$.ajax({
-    url:'http://<Đường dẫn của bạn đến thư mục>/',
-    dataType:'json',
-    data:{
-        'action':'register',
-        'token' : '<mã token được cung cấp>',   // mã token đã lấy ở trên
-        'type': 'facebook',
-        'name': '<Tên hiển thị>',
-        'data':'<Số điện thoại>',
-    },
-    success:function(results){
-        console.log(results); //Dữ liệu trả về
-    }
-});
-```
 Thông tin dữ liệu trả về
 
 ```php
@@ -121,7 +103,8 @@ $.ajax({
         'action':'login',
         'token' : '<mã token được cung cấp>',   // mã token đã lấy ở trên
         'type': 'facebook',
-        'fb_id':'<facebook_id>',
+        'name':'<tên hiển thị>',
+        'data': '{"access_token": "matokenfb", "expires": "expiresTufb", "id": "idfb"}'
     },
     success:function(results){
         console.log(results); //Dữ liệu trả về

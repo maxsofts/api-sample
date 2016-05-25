@@ -363,6 +363,9 @@ class users extends query
     }
 
     /**
+     *
+     * Update Avatar
+     *
      * @param $user_id
      * @param $path
      * @return bool
@@ -373,17 +376,16 @@ class users extends query
 
         $query->getQuery();
 
-        $query->update(
-            $query->quoteName("userinformation_userprofile")
-        );
-
-        $query->set(
-            $query->quoteName("avatar_url") . " = " . $query->quote($path)
-        );
-
-        $query->where(array(
-            $query->quoteName("user_id_id") . " = " . $query->quote($user_id),
-        ));
+        $query
+            ->update(
+                $query->quoteName("userinformation_userprofile")
+            )
+            ->set(
+                $query->quoteName("avatar_url") . " = " . $query->quote($path)
+            )
+            ->where(array(
+                $query->quoteName("user_id_id") . " = " . $query->quote($user_id),
+            ));
 
         $update = $query->setUpdate();
 
@@ -430,17 +432,16 @@ class users extends query
 
         $query->getQuery();
 
-        $query->update(
-            $query->quoteName("userinformation_userprofile")
-        );
-
-        $query->set(
-            $query->quoteName("phone") . " = " . $query->quote($data['phone'])
-        );
-
-        $query->where(array(
-            $query->quoteName("user_id_id") . " = " . $query->quote($user_id),
-        ));
+        $query
+            ->update(
+                $query->quoteName("userinformation_userprofile")
+            )
+            ->set(
+                $query->quoteName("phone") . " = " . $query->quote($data['phone'])
+            )
+            ->where(array(
+                $query->quoteName("user_id_id") . " = " . $query->quote($user_id),
+            ));
 
         $update = $query->setUpdate();
 
