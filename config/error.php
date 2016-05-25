@@ -19,5 +19,6 @@ return [
     "max15" => "Không thể khởi tạo thư mục",
     "max16" => "Tài khoản SFTP không đúng",
     "max17" => "Không thể upload lên server",
-    "max18" => "Không thể thêm đường dẫn ảnh vào database"
+    "max18" => "Không thể thêm đường dẫn ảnh vào database",
+    "max19" => "Dữ liệu không tồn tại hoặc không thể lấy dữ liệu"
 ];

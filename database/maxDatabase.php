@@ -24,7 +24,7 @@ class maxDatabase extends db
 
     public function __destruct()
     {
-       // $this->db->close();
+        // $this->db->close();
     }
 
     /**
@@ -34,11 +34,13 @@ class maxDatabase extends db
     {
         $config = config::get('config.driver');
 
-        $connect = mysqli_connect($config['host'], $config['username'], $config['password'], $config['dbName'],$config['port'],$config['socket']);
+        $connect = mysqli_connect($config['host'], $config['username'], $config['password'], $config['dbName'], $config['port'], $config['socket']);
         // check connection
         if ($connect->connect_error) {
             throw new Exception('Database connection failed: ' . $connect->connect_error);
         }
+        $connect->set_charset("utf8");
+
         $this->db = $connect;
     }
 
@@ -280,6 +282,23 @@ class maxDatabase extends db
         return $this;
     }
 
+    /**
+     * @param int $limit
+     * @param int $offset
+     * @return $this
+     */
+    public function setLimit($limit = 0, $offset = 0)
+    {
+        $this->limit = new databaseElement('LIMIT', $limit, "");
+        $this->offset = new databaseElement('OFFSET', $offset, "");
+
+        return $this;
+
+    }
+
+    /**
+     * @return $this
+     */
     public function getQuery()
     {
         $this->clear();
@@ -632,6 +651,13 @@ class maxDatabase extends db
 
                 if ($this->union) {
                     $query .= (string)$this->union;
+                }
+
+                if ($this->limit) {
+                    $query .= (string)$this->limit;
+                    if ($this->offset) {
+                        $query .= (string)$this->offset;
+                    }
                 }
 
                 break;

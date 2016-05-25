@@ -1,10 +1,4 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: tranxuanduc
- * Date: 5/16/16
- * Time: 08:24
- */
 
 namespace max_api\contracts;
 
@@ -16,7 +10,7 @@ class api
      * Author : Arun Kumar Sekar
      */
     public $_allow = array();
-    public $_content_type = "application/json";
+    public $_content_type = "application/json ; charset=utf-8";
     public $_request = array();
 
     private $_method = "";

@@ -219,6 +219,10 @@ class query
             $query->quoteName('last_login') . " = " . $query->quote(date("Y-m-d H:i:s"))
         ));
 
+        $query->where(
+            $query->quoteName("id") . " = " . $query->quote($user->id)
+        );
+
         $query->setUpdate();
 
         return $user->id;
@@ -356,7 +360,7 @@ class query
 
         $last_user_id = $query->setInsert();
 
-        if ($query->db->errno || $last_user_id) {
+        if ($query->db->errno || !$last_user_id) {
             return false;
         }
 
@@ -372,6 +376,8 @@ class query
             $query->quoteName("extra_data") . " = " . $query->quote(json_encode($data)),
             $query->quoteName("user_id") . " = " . $query->quote($last_user_id)
         ));
+
+
 
         $check = $query->setInsert();
 
@@ -599,6 +605,58 @@ class query
         return true;
     }
 
+
+    /**
+     * @param $limit
+     * @param $offset
+     * @param $order
+     * @return bool|mixed
+     * @throws RuntimeException
+     */
+    public function get_user($limit,$offset,$order){
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query
+            ->select(array(
+                $query->quoteName("profile.phone"),
+                $query->quoteName("profile.point"),
+                $query->quoteName("profile.count_content"),
+                $query->quoteName("profile.avatar_url")
+            ))
+            ->from(
+                $query->quoteName("userinformation_userprofile","profile")
+            )
+            //Join User auth
+            ->select(array(
+                $query->quoteName("user.first_name"),
+                $query->quoteName("user.last_name"),
+                $query->quoteName("user.email")
+            ))
+            ->join("LEFT","`auth_user` AS `user` ON `user`.`id` =  `profile`.`user_id_id`")
+
+            //Join honour
+            ->select(array(
+                $query->quoteName("hounour.name","hounour_name"),
+            ))
+            ->join("LEFT","`userinformation_honourable_name` AS `hounour` ON `hounour`.`id` =  `profile`.`honour_id`")
+
+
+            ->order($order)
+
+            ->setLimit($limit,$offset);
+
+        $query->setQuery();
+
+        $list = $query->loadObjects();
+
+        if(!$list){
+            return false;
+        }
+
+        return $list;
+    }
     /**
      * @param $name
      * @return null

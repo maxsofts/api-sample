@@ -84,7 +84,7 @@ class maxApi extends api
             "_token" => $token
         );
 
-        echo $this->response($this->json($return), 200);
+        return $this->response($this->json($return), 200);
     }
 
     /**
@@ -133,7 +133,7 @@ class maxApi extends api
             "_token" => $token
         );
 
-        echo $this->response($this->json($return), 200);
+        return $this->response($this->json($return), 200);
     }
 
 
@@ -217,7 +217,6 @@ class maxApi extends api
                 );
 
                 return $this->response($this->json($return));
-
 
                 break;
 
@@ -694,6 +693,53 @@ class maxApi extends api
         }
 
 
+    }
+
+
+    /**
+     * Lấy danh sách user
+     */
+    public function get_users()
+    {
+
+        $query = new query();
+
+        $token = $this->_request['token'];
+
+        $check = $query->checkToken($token);
+
+        if (!$check) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max04",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $limit = $this->_request['limit'] ? $this->_request['limit'] : 20;
+
+        $offset = $this->_request['offset'] ? $this->_request['offset'] : 0;
+
+        $order = $this->_request['order'] ? $this->_request['order'] : "point DESC";
+
+        $listUser = $query->get_user($limit, $offset,$order);
+
+        if (!$listUser) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max19",
+                "error_list" => $query->__get("_query")->error_list
+            );
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "data" => $listUser
+        ];
+
+        return $this->response($this->json($return), 400);
     }
 
     /*
