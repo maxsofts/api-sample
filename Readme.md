@@ -9,9 +9,9 @@ Chi tiết hoạt động API vui lòng xem code :|
 #Các hàm đã xây dựng
 
 [1. Tạo token!](#tạo-và-lấy-token-reset-token)
-2. Reset token
-3. Đăng ký
-4. Đăng nhập
+[2. Reset token!](#tạo-và-lấy-token-reset-token)
+[3. Đăng ký!](#Đăng-ký)
+[4. Đăng nhập](#Đăng-nhập-bằng-phone)
 5. Thay đổi mật khẩu
 6. Sửa thông tin cá nhân
 7. Upload Avatar
