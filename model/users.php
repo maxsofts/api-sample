@@ -287,6 +287,9 @@ class users extends query
 
 
     /**
+     *
+     * Kiểm tra password theo User ID
+     *
      * @param $user_id
      * @param $password
      * @return bool

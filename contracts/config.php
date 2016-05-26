@@ -16,27 +16,28 @@ class config
      */
     public static function get($file)
     {
-        $path = self::__get('path');
+        $path = self::$path;
 
         $splitPath = explode('.', $file);
 
-        if($splitPath[0]){
-            $file = $path.DIRECTORY_SEPARATOR.$splitPath[0].".php";
+        if ($splitPath[0]) {
+            $filepath = $path . DIRECTORY_SEPARATOR . $splitPath[0] . ".php";
 
-            if(file_exists($file)){
+            if (file_exists($filepath)) {
                 /** @var include config $file */
-                $config = include_once $file;
+                $config = include $filepath;
 
                 $countPath = count($splitPath);
 
 
-                if($countPath > 1){
+                if ($countPath > 1) {
                     $i = 1;
                     $return = $config;
-                    while($i < $countPath){
+                    while ($i < $countPath) {
                         $return = $return[$splitPath[$i]];
                         $i++;
                     }
+
                     return $return;
                 }
 
@@ -47,13 +48,4 @@ class config
     }
 
 
-    /**
-     *
-     * @param $name
-     * @return null|static
-     */
-    static public function __get($name)
-    {
-        return isset(self::$$name) ? self::$$name : null;
-    }
 }

@@ -9,6 +9,7 @@ use max_api\contracts\config;
 use max_api\contracts\guid;
 use max_api\database\query;
 use max_api\model\categories;
+use max_api\model\comment;
 use max_api\model\contents;
 use max_api\model\users;
 
@@ -19,13 +20,6 @@ use max_api\model\users;
  */
 class maxApi extends api
 {
-
-    public function __construct()
-    {
-        parent::__construct();
-    }
-
-
     /*
      * Public method for access api.
      * This method dynmically call the method based on the query string
@@ -951,9 +945,126 @@ class maxApi extends api
     }
 
     /**
-     * Lấy các comment
+     * Lấy các comment theo bài viết
      */
-    public function  get_comment_by_content(){
+    public function  get_comments_by_content()
+    {
+        $comment = new comment();
 
+        $token = $this->_request['token'];
+
+        $check = $comment->checkToken($token);
+
+        if (!$check) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max04",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+
+        $content_id = $this->_request['content_id'];
+
+        $limit = $this->_request['limit'] ? $this->_request['limit'] : 10;
+
+        $offset = $this->_request['offset'] ? $this->_request['offset'] : 0;
+
+        if (!$content_id) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $list_comment = $comment->getCommentsByContent($content_id, $limit, $offset);
+        $total = $comment->getCountComment($content_id);
+
+        if (!$list_comment) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max19",
+                "error_list" => $comment->__get("_query")->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "data" => [
+                "list" => $list_comment,
+                "total" => $total
+            ]
+        ];
+
+        return $this->response($this->json($return));
+    }
+
+    /**
+     * Thêm bình luận mới
+     */
+    public function set_comment()
+    {
+        $comment = new comment();
+
+        $token = $this->_request['token'];
+
+        $check = $comment->checkToken($token);
+
+        if (!$check) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max04",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $content_id = $this->_request['content_id'];
+
+        $user_id = $this->_request['user_id'];
+
+        $comment_text = $this->_request['comment'];
+
+        if (!$content_id || !$user_id || !$comment_text) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $setComment = $comment->setComment($content_id, $user_id, $comment_text);
+
+        if (!$setComment) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max07",
+                "error_list" => $comment->__get("_query")->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "data" => [
+                "id" => $setComment
+            ]
+        ];
+
+        if ($comment->__get("_query")->error_list) {
+            $return["message"] = [
+                "update count not success on content",
+                "error" => $comment->__get("_query")->error_list
+            ];
+        }
+
+        return $this->response($this->json($return));
     }
 }

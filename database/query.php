@@ -14,7 +14,15 @@ class query
 
     public function __construct()
     {
-        $this->_query = new maxDatabase();
+        if (is_null($this->_query)) {
+            $this->_query = new maxDatabase();
+        }
+
+    }
+
+    public function __destruct()
+    {
+        $this->_query = null;
     }
 
 

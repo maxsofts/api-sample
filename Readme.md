@@ -8,15 +8,25 @@ Chi tiết hoạt động API vui lòng xem code :|
 
 #Các hàm đã xây dựng
 
-[1. Tạo token!](# Tạo và lấy token //reset token)
+[1. Tạo token!](#Tạo-và-lấy-token-reset-token)
 2. Reset token
 3. Đăng ký
 4. Đăng nhập
+5. Thay đổi mật khẩu
+6. Sửa thông tin cá nhân
+7. Upload Avatar
+8. Lấy danh sách thông tin tài khoản
+9. Lấy menu
+10. Lấy danh sách danh mục
+11. Lấy bài viết theo danh mục
+12. Lấy bài viết theo tài khoản
+13. Lấy comment theo bài viết
+14. Cập nhật mới comment
 
 
 #Hướng dẫn sử dụng với Ajax Jquery
 
-# Tạo và lấy token //reset token
+# Tạo và lấy token reset token
 ```php
 $.ajax({
     url:'http://<Đường dẫn của bạn đến thư mục>/',
@@ -111,3 +121,4 @@ $.ajax({
     }
 });
 ```
+

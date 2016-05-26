@@ -216,11 +216,6 @@ interface dbImplement
      */
     public function append($name, $elements);
 
-    /**
-     * @param $strArr
-     * @return mixed
-     */
-    public function quoteNameStr($strArr);
 
     /**
      * @param $text

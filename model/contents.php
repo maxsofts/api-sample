@@ -105,4 +105,106 @@ class contents extends query
 
         return $list;
     }
+
+    /**
+     *
+     * update Share
+     *
+     * @param $content_id
+     * @param $count
+     * @return bool
+     */
+    public function updateShare($content_id, $count)
+    {
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query
+            ->update(
+                $query->quoteName("content_content")
+            )
+            ->set(
+                $query->quoteName("share") . " = " . $query->quote($count)
+            )
+            ->where(
+                $query->quoteName("id") . " = " . $query->quote($content_id)
+            );
+
+        $update = $query->setUpdate();
+
+        if (!$update) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     *
+     * update Comment
+     *
+     * @param $content_id
+     * @param $count
+     * @return bool
+     */
+    public function updateComment($content_id, $count)
+    {
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query
+            ->update(
+                $query->quoteName("content_content")
+            )
+            ->set(
+                $query->quoteName("comment") . " = " . $query->quote($count)
+            )
+            ->where(
+                $query->quoteName("id") . " = " . $query->quote($content_id)
+            );
+
+        $update = $query->setUpdate();
+
+        if (!$update) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     *
+     * update Like
+     *
+     * @param $content_id
+     * @param $count
+     * @return bool
+     */
+    public function updateLike($content_id, $count)
+    {
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query
+            ->update(
+                $query->quoteName("content_content")
+            )
+            ->set(
+                $query->quoteName("like") . " = " . $query->quote($count)
+            )
+            ->where(
+                $query->quoteName("id") . " = " . $query->quote($content_id)
+            );
+
+        $update = $query->setUpdate();
+
+        if (!$update) {
+            return false;
+        }
+
+        return true;
+    }
 }
