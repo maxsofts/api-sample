@@ -8,7 +8,8 @@ Chi tiết hoạt động API vui lòng xem code :|
 
 #Các hàm đã xây dựng
 
-[1. Tạo token!](#Tạo-và-lấy-token-reset-token)
+[1. Tạo token!](#tạo-và-lấy-token-reset-token)
+
 2. Reset token
 3. Đăng ký
 4. Đăng nhập
