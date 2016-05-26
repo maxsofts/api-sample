@@ -19,9 +19,11 @@ class maxDatabase extends db
      */
     public function __construct()
     {
+
         if(is_null($this->db)){
             $this->dbConnect();
         }
+
     }
 
     /**
@@ -37,7 +39,9 @@ class maxDatabase extends db
      */
     public function dbConnect()
     {
+
         $config = config::get('config.driver');
+
         $connect = mysqli_connect($config['host'], $config['username'], $config['password'], $config['dbName'], $config['port'], $config['socket']);
         // check connection
         if ($connect->connect_error) {

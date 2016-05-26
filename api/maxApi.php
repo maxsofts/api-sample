@@ -9,7 +9,7 @@ use max_api\contracts\config;
 use max_api\contracts\guid;
 use max_api\database\query;
 use max_api\model\categories;
-use max_api\model\comment;
+use max_api\model\comments;
 use max_api\model\contents;
 use max_api\model\users;
 
@@ -947,13 +947,13 @@ class maxApi extends api
     /**
      * Lấy các comment theo bài viết
      */
-    public function  get_comments_by_content()
+    public function get_comments_by_content()
     {
-        $comment = new comment();
+        $comments = new comments();
 
         $token = $this->_request['token'];
 
-        $check = $comment->checkToken($token);
+        $check = $comments->checkToken($token);
 
         if (!$check) {
             $return = [
@@ -965,13 +965,14 @@ class maxApi extends api
         }
 
 
-        $content_id = $this->_request['content_id'];
+        $parent_id = $this->_request['parent_id'];
 
         $limit = $this->_request['limit'] ? $this->_request['limit'] : 10;
 
         $offset = $this->_request['offset'] ? $this->_request['offset'] : 0;
 
-        if (!$content_id) {
+
+        if (!$parent_id) {
             $return = array(
                 "success" => false,
                 "errorCode" => "max01",
@@ -980,14 +981,84 @@ class maxApi extends api
             return $this->response($this->json($return), 400);
         }
 
-        $list_comment = $comment->getCommentsByContent($content_id, $limit, $offset);
-        $total = $comment->getCountComment($content_id);
+        $list_comment_content = $comments->getCommentsByRelateType($parent_id, $limit, $offset, 'content');
 
-        if (!$list_comment) {
+        $total = $comments->getCountComment($parent_id, 'content');
+
+        if (!$list_comment_content) {
             $return = [
                 "success" => false,
                 "errorCode" => "max19",
-                "error_list" => $comment->__get("_query")->error_list
+                "error_list" => $comments->__get("_query")->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        //get comment by comment
+        foreach ($list_comment_content as $comment) {
+            $comment->comment_reply = $comments->getCommentsByRelateType($comment->id, $limit, $offset, 'comment');
+            $comment->total_reply = $comments->getCountComment($comment->id, 'comment');
+        }
+
+        $return = [
+            "success" => true,
+            "data" => [
+                "content" => [
+                    "total" => $total,
+                    "list_comment_content" => $list_comment_content
+                ],
+            ]
+        ];
+
+        return $this->response($this->json($return));
+    }
+
+    /**
+     * Comment by comment
+     */
+    public function get_comments_by_comment()
+    {
+        $comments = new comments();
+
+        $token = $this->_request['token'];
+
+        $check = $comments->checkToken($token);
+
+        if (!$check) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max04",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+
+        $parent_id = $this->_request['parent_id'];
+
+        $limit = $this->_request['limit'] ? $this->_request['limit'] : 10;
+
+        $offset = $this->_request['offset'] ? $this->_request['offset'] : 0;
+
+        if (!$parent_id) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $list_comment_reply = $comments->getCommentsByRelateType($parent_id, $limit, $offset, 'comment');
+
+        $total = $comments->getCountComment($parent_id, 'comment');
+
+        if (!$list_comment_reply) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max19",
+                "error_list" => $comments->__get("_query")->error_list
             ];
 
             return $this->response($this->json($return), 400);
@@ -996,8 +1067,8 @@ class maxApi extends api
         $return = [
             "success" => true,
             "data" => [
-                "list" => $list_comment,
-                "total" => $total
+                "total" => $total,
+                "list_comment_reply" => $list_comment_reply
             ]
         ];
 
@@ -1009,11 +1080,79 @@ class maxApi extends api
      */
     public function set_comment()
     {
-        $comment = new comment();
+        $comments = new comments();
 
         $token = $this->_request['token'];
 
-        $check = $comment->checkToken($token);
+        $check = $comments->checkToken($token);
+
+        if (!$check) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max04",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $parent_id = $this->_request['parent_id'];
+
+        $user_id = $this->_request['user_id'];
+
+        $relate_type = $this->_request['relate_type'];
+
+        $comment_text = $this->_request['comment'];
+
+
+        if (!$parent_id || !$user_id || !$comment_text || !in_array($relate_type, config::get('sftp.upload.type_media'))) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $setComment = $comments->setComment($parent_id, $user_id, $comment_text, $relate_type);
+
+        if (!$setComment) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max07",
+                "error_list" => $comments->__get("_query")->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "data" => [
+                "id" => $setComment
+            ]
+        ];
+
+        if ($comments->__get("_query")->error_list) {
+            $return["message"] = [
+                "update count not success on content",
+                "error" => $comments->__get("_query")->error_list
+            ];
+        }
+
+        return $this->response($this->json($return));
+    }
+
+    /**
+     * Sửa lại
+     */
+    public function update_comment()
+    {
+
+        $comments = new comments();
+
+        $token = $this->_request['token'];
+
+        $check = $comments->checkToken($token);
 
         if (!$check) {
             $return = [
@@ -1039,13 +1178,12 @@ class maxApi extends api
             return $this->response($this->json($return), 400);
         }
 
-        $setComment = $comment->setComment($content_id, $user_id, $comment_text);
 
-        if (!$setComment) {
+        if (!$comments->updateComment($content_id, $user_id, $comment_text)) {
             $return = [
                 "success" => false,
                 "errorCode" => "max07",
-                "error_list" => $comment->__get("_query")->error_list
+                "error_list" => $comments->__get("_query")->error_list
             ];
 
             return $this->response($this->json($return), 400);
@@ -1053,18 +1191,176 @@ class maxApi extends api
 
         $return = [
             "success" => true,
-            "data" => [
-                "id" => $setComment
-            ]
+            "message" => "Update success"
         ];
 
-        if ($comment->__get("_query")->error_list) {
-            $return["message"] = [
-                "update count not success on content",
-                "error" => $comment->__get("_query")->error_list
-            ];
-        }
 
         return $this->response($this->json($return));
+    }
+
+
+    /**
+     *
+     */
+    public function upload_image()
+    {
+        $query = new query();
+
+        $token = $this->_request['token'];
+
+        $check = $query->checkToken($token);
+
+        if (!$check) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max04",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $config = config::get('sftp');
+
+        $user_id = $this->_request['user_id'];
+
+        $type_media = $this->_request['type_media'];
+
+        if (!in_array($type_media, $config['upload']['type_media']) || !$user_id) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+
+        try {
+
+            if (!isset($_FILES['image']['error']) || is_array($_FILES['image']['error'])) {
+                $return = [
+                    "success" => false,
+                    "errorCode" => "max11"
+                ];
+
+                return $this->response($this->json($return), 400);
+            }
+
+            // Check $_FILES['upfile']['error'] value.
+            switch ($_FILES['image']['error']) {
+                case UPLOAD_ERR_OK:
+                    break;
+                case UPLOAD_ERR_NO_FILE:
+                    $return = [
+                        "success" => false,
+                        "errorCode" => "max11"
+                    ];
+
+                    return $this->response($this->json($return), 400);
+                case UPLOAD_ERR_INI_SIZE:
+                case UPLOAD_ERR_FORM_SIZE:
+                    $return = [
+                        "success" => false,
+                        "errorCode" => "max12"
+                    ];
+
+                    return $this->response($this->json($return), 400);
+                default:
+                    $return = [
+                        "success" => false,
+                        "errorCode" => "max13"
+                    ];
+
+                    return $this->response($this->json($return), 400);
+            }
+
+            // You should also check filesize here.
+            if ($_FILES['image']['size'] > (float)$config['upload']['size']['post']) {
+                $return = [
+                    "success" => false,
+                    "errorCode" => "max12"
+                ];
+
+                return $this->response($this->json($return), 400);
+            }
+
+            // DO NOT TRUST $_FILES['upfile']['mime'] VALUE !!
+            // Check MIME Type by yourself.
+
+            if (false === $ext = array_search(
+                    $_FILES['image']['type'],
+                    $config['upload']['type'],
+                    true
+                )
+            ) {
+                $return = [
+                    "success" => false,
+                    "errorCode" => "max14"
+                ];
+
+                return $this->response($this->json($return), 400);
+            }
+
+            // You should name it uniquely.
+            // DO NOT USE $_FILES['upfile']['name'] WITHOUT ANY VALIDATION !!
+            // On this example, obtain safe unique name from its binary data.
+
+            $nameImage = guid::get();
+
+            $upload = sprintf($config['upload']['dir'], $type_media, $user_id, $nameImage, $ext);
+            $url = sprintf($config['upload']['url'], $type_media, $user_id, $nameImage, $ext);
+            $dirUp = sprintf($config['upload']['dir_base'], $type_media, $user_id);
+
+
+            $sftp = new \Net_SFTP($config['sftp']['host']);
+            if (!$sftp->login($config['sftp']['username'], $config['sftp']['password'])) {
+                $return = [
+                    "success" => false,
+                    "errorCode" => "max16"
+                ];
+
+                return $this->response($this->json($return), 400);
+            }
+
+            if (!$sftp->is_dir($dirUp)) {
+                if (!$sftp->mkdir($dirUp)) {
+                    $return = [
+                        "success" => false,
+                        "errorCode" => "max15"
+                    ];
+
+                    return $this->response($this->json($return), 400);
+                }
+            }
+            // puts an x-byte file named filename.remote on the SFTP server,
+            if (!$sftp->put($upload, $_FILES['image']['tmp_name'], NET_SFTP_LOCAL_FILE)) {
+                $return = [
+                    "success" => false,
+                    "errorCode" => "max17"
+                ];
+
+                return $this->response($this->json($return), 400);
+            };
+
+
+            $return = [
+                "success" => true,
+                "data" => [
+                    "url" => $url
+                ]
+            ];
+
+            return $this->response($this->json($return));
+
+
+        } catch (RuntimeException $e) {
+            $return = [
+                "success" => false,
+                "error" => "max13"
+            ];
+
+            return $this->response($this->json($return), 400);
+
+        }
     }
 }

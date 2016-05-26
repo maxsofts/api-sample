@@ -7,7 +7,7 @@ return [
     'driver' => [
         'host' => 'localhost',
 
-        'dbName' => 'gbd_test',
+        'dbName' => 'gdb_test',
 
         'username' => 'root',
 

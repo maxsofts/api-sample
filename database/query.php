@@ -5,7 +5,7 @@ namespace max_api\database;
 
 /**
  * Class database
- * @package max_api\database
+ * @package api_userapi\database
  */
 class query
 {
@@ -14,6 +14,7 @@ class query
 
     public function __construct()
     {
+
         if (is_null($this->_query)) {
             $this->_query = new maxDatabase();
         }
@@ -46,7 +47,7 @@ class query
 
         $query->select(array('`token`'));
 
-        $query->from("`max_api`");
+        $query->from("`api_userapi`");
 
         $query->where(array(
             "`vendor` = " . $this->_query->quote($vendor),
@@ -84,7 +85,7 @@ class query
 
         $query->select(array('Count(`id`)'));
 
-        $query->from("`max_api`");
+        $query->from("`api_userapi`");
 
         $query->where(array(
             "`token` = " . $query->quote($token),
@@ -118,7 +119,7 @@ class query
 
         $query->getQuery();
 
-        $query->update("`max_api`");
+        $query->update("`api_userapi`");
 
         $query->set(
             "`token` = " . $query->quote($token)
@@ -155,7 +156,7 @@ class query
 
         $query->select(array('Count(`id`)'));
 
-        $query->from("`max_api`");
+        $query->from("`api_userapi`");
 
         $query->where(array(
             "`vendor` = " . $query->quote($vendor),
