@@ -1,7 +1,21 @@
 <?php
-/**
- * Created by PhpStorm.
- * User: tranxuanduc
- * Date: 5/27/16
- * Time: 10:16
- */
+namespace max_api\contracts;
+
+class uploadHelper
+{
+
+    public static function linkToDir($link)
+    {
+        $config = config::get("sftp");
+
+        $imageSplit = explode("/", $link);
+
+        $imageName = end($imageSplit);
+
+        $dir = sprintf($config['upload']['dir_base'], $imageSplit[5], $imageSplit[6]);
+
+        $imageDir = $dir . $imageName;
+
+        return $imageDir;
+    }
+}

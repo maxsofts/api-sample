@@ -50,6 +50,11 @@ class comments extends query
                 $query->quoteName("profile.avatar_url", "user_avatar_url"),
             ))
             ->join("LEFT", "`userinformation_userprofile` AS `profile` ON `profile`.`user_id_id` = `comment`.`user_id`")
+            //join media
+            ->select(array(
+                $query->quoteName("media.link", "media_link"),
+            ))
+            ->join("LEFT", "`content_mediacontent` AS `media` ON `media`.`parent_id` = `comment`.`id` AND `media`.`relate_type` = 'comment'")
             ->where(array(
                 $query->quoteName("comment.parent_id") . " = " . $query->quote($parent_id),
                 $query->quoteName("comment.relate_type") . " = " . $query->quote($relate_type)
@@ -157,16 +162,11 @@ class comments extends query
     }
 
     /**
-     *
-     * Sửa comment
-     *
-     * @param $content_id
-     * @param $user_id
+     * @param $id
      * @param $comment
-     * @param string $relate_type
      * @return bool
      */
-    public function updateComment($content_id, $user_id, $comment, $relate_type = 'content')
+    public function updateComment($id, $comment)
     {
         $query = $this->_query;
 
@@ -181,9 +181,7 @@ class comments extends query
                 $query->quoteName("edit_date") . " = " . $query->quote(date('Y-m-d H:i:s')),
             ))
             ->where(array(
-                $query->quoteName("content_id") . " = " . $query->quote($content_id),
-                $query->quoteName("user_id") . " = " . $query->quote($user_id),
-                $query->quoteName("relate_type") . " = " . $query->quote($relate_type),
+                $query->quoteName("id") . " = " . $query->quote($id)
             ));
 
 
@@ -192,4 +190,34 @@ class comments extends query
         }
         return true;
     }
+
+    /**
+     * @param $id
+     * @return bool
+     */
+    public function deleteComment($id)
+    {
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query
+            ->delete("userinformation_usercomment")
+            ->where(
+                $query->quoteName('id') . " = " . $query->quote($id)
+            );
+
+        if (!$query->setQuery()) {
+            return false;
+        }
+        //detete media
+        $media = new media();
+
+        if (!$media->deleteMedia($id, 'comment')) {
+            $query->error_list = $media->_query->error_list;
+        }
+
+        return true;
+    }
+
 }

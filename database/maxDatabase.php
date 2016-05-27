@@ -5,6 +5,7 @@ namespace max_api\database;
 use max_api\contracts\config;
 use max_api\contracts\database\databaseElement;
 use max_api\contracts\database\db;
+use RuntimeException;
 
 /**
  * Class maxDatabase
@@ -20,7 +21,7 @@ class maxDatabase extends db
     public function __construct()
     {
 
-        if(is_null($this->db)){
+        if (is_null($this->db)) {
             $this->dbConnect();
         }
 
@@ -302,6 +303,23 @@ class maxDatabase extends db
 
         return $this;
 
+    }
+
+    /**
+     * @param null $table
+     * @return $this
+     * @throws RuntimeException
+     */
+    public function delete($table = null)
+    {
+        $this->type = 'delete';
+        $this->delete = new databaseElement('DELETE', null);
+
+        if (!empty($table)) {
+            $this->from($table);
+        }
+
+        return $this;
     }
 
     /**

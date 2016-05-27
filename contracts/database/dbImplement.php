@@ -122,6 +122,19 @@ interface dbImplement
     public function union($query, $distinct = false, $glue = '');
 
     /**
+     * Add a table name to the DELETE clause of the query.
+     *
+     * Note that you must not mix insert, update, delete and select method calls when building a query.
+     *
+     * Usage:
+     * $query->delete('#__a')->where('id = 1');
+     *
+     * @param   string $table The name of the table to delete from.
+     */
+    public function delete($table = null);
+
+
+    /**
      * @return mixed
      */
     public function getQuery();

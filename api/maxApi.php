@@ -7,10 +7,12 @@ namespace max_api\api;
 use max_api\contracts\api;
 use max_api\contracts\config;
 use max_api\contracts\guid;
+use max_api\contracts\sftp;
 use max_api\database\query;
 use max_api\model\categories;
 use max_api\model\comments;
 use max_api\model\contents;
+use max_api\model\media;
 use max_api\model\users;
 
 
@@ -36,7 +38,7 @@ class maxApi extends api
     }
 
     /**
-     * Lấy token hoặc tạo mới token nếu chưa có
+     * TODO: Lấy token hoặc tạo mới token nếu chưa có
      */
     public function get_token()
     {
@@ -85,7 +87,7 @@ class maxApi extends api
     }
 
     /**
-     * Tạo mới token hoặc thay đổi token ;
+     * TODO: Tạo mới token hoặc thay đổi token ;
      */
     public function reset_token()
     {
@@ -135,7 +137,7 @@ class maxApi extends api
 
 
     /**
-     * Login app
+     * TODO: Login app
      */
     public function login()
     {
@@ -276,7 +278,7 @@ class maxApi extends api
 
 
     /**
-     * Đăng ký
+     * TODO: Đăng ký
      *
      * @return bool|void
      */
@@ -409,7 +411,7 @@ class maxApi extends api
     }
 
     /**
-     * Thay đổi mật khẩu
+     * TODO: Thay đổi mật khẩu
      */
     public function change_pass()
     {
@@ -468,7 +470,7 @@ class maxApi extends api
     }
 
     /**
-     * Sửa thông tin cá nhân
+     * TODO: Sửa thông tin cá nhân
      */
     public function update_profile()
     {
@@ -536,7 +538,7 @@ class maxApi extends api
     }
 
     /**
-     * Upload image avatar
+     * TODO: Upload image avatar
      */
     public function upload_avatar()
     {
@@ -638,8 +640,8 @@ class maxApi extends api
             $dirUp = sprintf($config['upload']['dir_base'], "avatar", $user_id);
 
 
-            $sftp = new \Net_SFTP($config['sftp']['host']);
-            if (!$sftp->login($config['sftp']['username'], $config['sftp']['password'])) {
+            $sftp = new sftp();
+            if (!$sftp) {
                 $return = [
                     "success" => false,
                     "errorCode" => "max16"
@@ -647,6 +649,7 @@ class maxApi extends api
 
                 return $this->response($this->json($return), 400);
             }
+
 
             if (!$sftp->is_dir($dirUp)) {
                 if (!$sftp->mkdir($dirUp)) {
@@ -704,7 +707,7 @@ class maxApi extends api
 
 
     /**
-     * Lấy danh sách user
+     * TODO: Lấy danh sách user
      */
     public function get_users()
     {
@@ -750,7 +753,7 @@ class maxApi extends api
     }
 
     /**
-     * Lấy dữ liệu menu
+     * TODO: Lấy dữ liệu menu
      */
     public function get_menus()
     {
@@ -791,7 +794,7 @@ class maxApi extends api
 
 
     /**
-     * Lấy toàn bộ các danh mục
+     * TODO: Lấy toàn bộ các danh mục
      */
     public function get_categories()
     {
@@ -832,7 +835,7 @@ class maxApi extends api
 
 
     /**
-     * Lấy danh sách bài viết theo danh mục
+     * TODO: Lấy danh sách bài viết theo danh mục
      */
     public function get_contents_by_category()
     {
@@ -889,7 +892,7 @@ class maxApi extends api
 
 
     /**
-     * Lấy danh sách bài viết theo user
+     * TODO: Lấy danh sách bài viết theo user
      */
     public function get_contents_by_user()
     {
@@ -945,7 +948,8 @@ class maxApi extends api
     }
 
     /**
-     * Lấy các comment theo bài viết
+     *
+     * TODO: Lấy các comment theo bài viết
      */
     public function get_comments_by_content()
     {
@@ -1015,7 +1019,7 @@ class maxApi extends api
     }
 
     /**
-     * Comment by comment
+     * TODO: Comment by comment
      */
     public function get_comments_by_comment()
     {
@@ -1076,7 +1080,7 @@ class maxApi extends api
     }
 
     /**
-     * Thêm bình luận mới
+     * TODO: Thêm bình luận mới
      */
     public function set_comment()
     {
@@ -1104,7 +1108,7 @@ class maxApi extends api
         $comment_text = $this->_request['comment'];
 
 
-        if (!$parent_id || !$user_id || !$comment_text || !in_array($relate_type, config::get('sftp.upload.type_media'))) {
+        if (!$parent_id || !$user_id || !$comment_text || !in_array($relate_type, config::get('sftp.upload.relate_type'))) {
             $return = array(
                 "success" => false,
                 "errorCode" => "max01",
@@ -1143,7 +1147,7 @@ class maxApi extends api
     }
 
     /**
-     * Sửa lại
+     * TODO: Sửa lại
      */
     public function update_comment()
     {
@@ -1163,13 +1167,11 @@ class maxApi extends api
             return $this->response($this->json($return), 400);
         }
 
-        $content_id = $this->_request['content_id'];
-
-        $user_id = $this->_request['user_id'];
+        $id = $this->_request['id'];
 
         $comment_text = $this->_request['comment'];
 
-        if (!$content_id || !$user_id || !$comment_text) {
+        if (!$id || !$comment_text) {
             $return = array(
                 "success" => false,
                 "errorCode" => "max01",
@@ -1179,7 +1181,7 @@ class maxApi extends api
         }
 
 
-        if (!$comments->updateComment($content_id, $user_id, $comment_text)) {
+        if (!$comments->updateComment($id, $comment_text)) {
             $return = [
                 "success" => false,
                 "errorCode" => "max07",
@@ -1198,17 +1200,66 @@ class maxApi extends api
         return $this->response($this->json($return));
     }
 
-
     /**
-     *
+     * TODO: Xoá comment
      */
-    public function upload_image()
+    public function delete_comment()
     {
-        $query = new query();
+        $comments = new comments();
 
         $token = $this->_request['token'];
 
-        $check = $query->checkToken($token);
+        $check = $comments->checkToken($token);
+
+        if (!$check) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max04",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $id = $this->_request['id'];
+
+        if (!$id) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+
+        if (!$comments->deleteComment($id)) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max20",
+                "error_list" => $comments->__get("_query")->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "message" => "Delete success"
+        ];
+
+        return $this->response($this->json($return));
+    }
+
+    /**
+     * TODO: Upload image by comment
+     */
+    public function upload_image()
+    {
+        $media = new media();
+
+        $token = $this->_request['token'];
+
+        $check = $media->checkToken($token);
 
         if (!$check) {
             $return = array(
@@ -1223,9 +1274,12 @@ class maxApi extends api
 
         $user_id = $this->_request['user_id'];
 
-        $type_media = $this->_request['type_media'];
+        $parent_id = $this->_request['parent_id'];
 
-        if (!in_array($type_media, $config['upload']['type_media']) || !$user_id) {
+        $relate_type = $this->_request['relate_type'];
+
+
+        if (!in_array($relate_type, $config['upload']['relate_type']) || !$user_id) {
             $return = array(
                 "success" => false,
                 "errorCode" => "max01",
@@ -1246,7 +1300,7 @@ class maxApi extends api
                 return $this->response($this->json($return), 400);
             }
 
-            // Check $_FILES['upfile']['error'] value.
+            // Kiểm tra lỗi
             switch ($_FILES['image']['error']) {
                 case UPLOAD_ERR_OK:
                     break;
@@ -1274,7 +1328,7 @@ class maxApi extends api
                     return $this->response($this->json($return), 400);
             }
 
-            // You should also check filesize here.
+            // kiểm tra file síze
             if ($_FILES['image']['size'] > (float)$config['upload']['size']['post']) {
                 $return = [
                     "success" => false,
@@ -1284,8 +1338,7 @@ class maxApi extends api
                 return $this->response($this->json($return), 400);
             }
 
-            // DO NOT TRUST $_FILES['upfile']['mime'] VALUE !!
-            // Check MIME Type by yourself.
+            // kiểm tra định dạng ảnh
 
             if (false === $ext = array_search(
                     $_FILES['image']['type'],
@@ -1301,19 +1354,24 @@ class maxApi extends api
                 return $this->response($this->json($return), 400);
             }
 
-            // You should name it uniquely.
-            // DO NOT USE $_FILES['upfile']['name'] WITHOUT ANY VALIDATION !!
-            // On this example, obtain safe unique name from its binary data.
-
             $nameImage = guid::get();
 
-            $upload = sprintf($config['upload']['dir'], $type_media, $user_id, $nameImage, $ext);
-            $url = sprintf($config['upload']['url'], $type_media, $user_id, $nameImage, $ext);
-            $dirUp = sprintf($config['upload']['dir_base'], $type_media, $user_id);
+            $upload = sprintf($config['upload']['dir'], $relate_type, $user_id, $nameImage, $ext);
+            $url = sprintf($config['upload']['url'], $relate_type, $user_id, $nameImage, $ext);
+            $dirUp = sprintf($config['upload']['dir_base'], $relate_type, $user_id);
 
+            if (!$id_media = $media->setMedia($parent_id, $user_id, $url, 0, $relate_type)) {
+                $return = [
+                    "success" => false,
+                    "errorCode" => "max07",
+                    "error_list" => $media->__get('_query')->error_list
+                ];
 
-            $sftp = new \Net_SFTP($config['sftp']['host']);
-            if (!$sftp->login($config['sftp']['username'], $config['sftp']['password'])) {
+                return $this->response($this->json($return), 400);
+            }
+
+            $sftp = new sftp();
+            if (!$sftp) {
                 $return = [
                     "success" => false,
                     "errorCode" => "max16"
@@ -1346,7 +1404,8 @@ class maxApi extends api
             $return = [
                 "success" => true,
                 "data" => [
-                    "url" => $url
+                    "url" => $url,
+                    "id" => $id_media
                 ]
             ];
 
@@ -1363,4 +1422,15 @@ class maxApi extends api
 
         }
     }
+
+
+    /*
+     * TODO: Like share
+     */
+
+    public function like()
+    {
+
+    }
+
 }

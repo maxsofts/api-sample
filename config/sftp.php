@@ -19,8 +19,12 @@ return [
             'post' => '524288',
         ],
 
-        'type_media' => [
+        'relate_type' => [
             'content', 'comment', 'status'
+        ],
+
+        'media_type' => [
+            'image','video','stream'
         ],
 
         'dir_base' => '/home/khanhdq/nghienapi/nghienbongda/media/uploads/%s/%s/',
