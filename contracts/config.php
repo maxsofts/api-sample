@@ -21,11 +21,11 @@ class config
         $splitPath = explode('.', $file);
 
         if ($splitPath[0]) {
-            $filepath = $path . DIRECTORY_SEPARATOR . $splitPath[0] . ".php";
+            $filePath = $path . DIRECTORY_SEPARATOR . $splitPath[0] . ".php";
 
-            if (file_exists($filepath)) {
+            if (file_exists($filePath)) {
                 /** @var include config $file */
-                $config = include $filepath;
+                $config = include $filePath;
 
                 $countPath = count($splitPath);
 

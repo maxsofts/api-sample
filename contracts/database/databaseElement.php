@@ -2,7 +2,8 @@
 
 namespace max_api\contracts\database;
 
-class databaseElement{
+class databaseElement
+{
 
     /**
      * @var string name The name of the element.
@@ -22,9 +23,9 @@ class databaseElement{
     /**
      * Constructor.
      *
-     * @param   string  $name      The name of the element.
-     * @param   mixed   $elements  String or array.
-     * @param   string  $glue      The glue for elements.
+     * @param   string $name The name of the element.
+     * @param   mixed $elements String or array.
+     * @param   string $glue The glue for elements.
      *
      */
     public function __construct($name, $elements, $glue = ',')
@@ -44,31 +45,26 @@ class databaseElement{
      */
     public function __toString()
     {
-        if (substr($this->name, -2) == '()')
-        {
+        if (substr($this->name, -2) == '()') {
             return PHP_EOL . substr($this->name, 0, -2) . '(' . implode($this->glue, $this->elements) . ')';
-        }
-        else
-        {
+        } else {
             return PHP_EOL . $this->name . ' ' . implode($this->glue, $this->elements);
         }
     }
+
     /**
      * Appends element parts to the internal list.
      *
-     * @param   mixed  $elements  String or array.
+     * @param   mixed $elements String or array.
      *
      * @return  void
      *
      */
     public function append($elements)
     {
-        if (is_array($elements))
-        {
+        if (is_array($elements)) {
             $this->elements = array_merge($this->elements, $elements);
-        }
-        else
-        {
+        } else {
             $this->elements = array_merge($this->elements, array($elements));
         }
     }
@@ -92,10 +88,8 @@ class databaseElement{
      */
     public function __clone()
     {
-        foreach ($this as $k => $v)
-        {
-            if (is_object($v) || is_array($v))
-            {
+        foreach ($this as $k => $v) {
+            if (is_object($v) || is_array($v)) {
                 $this->{$k} = unserialize(serialize($v));
             }
         }

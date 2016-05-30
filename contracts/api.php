@@ -13,7 +13,6 @@ class api
     public $_content_type = "application/json ; charset=utf-8";
     public $_request = array();
 
-    private $_method = "";
     private $_code = 200;
 
     /**

@@ -12,13 +12,11 @@ use max_api\contracts\password;
 class users extends query
 {
     /**
-     *
      * Kiểm tra tài khoản và mật khẩu đẫ đúng chưa
      *
      * @param $username
      * @param $password
      * @return bool
-     * @throws RuntimeException
      */
     public function auth($username, $password)
     {
@@ -79,7 +77,6 @@ class users extends query
      *
      * @param $userId
      * @return bool|mixed
-     * @throws RuntimeException
      */
     public function getInfoUser($userId)
     {
@@ -94,6 +91,7 @@ class users extends query
             $query->quoteName("user.last_name"),
             $query->quoteName("user.email"),
             $query->quoteName("user.date_joined"),
+            $query->quoteName("is_active")
         ));
 
         $query->from(
@@ -176,9 +174,8 @@ class users extends query
     }
 
     /**
-     *
      * Lưu trữ tài khoản facebook
-     *
+     * @param $name
      * @param $data
      * @return bool
      */
@@ -254,7 +251,6 @@ class users extends query
      *
      * @param $fb_id
      * @return bool
-     * @throws RuntimeException
      */
     public function getUserIdByFB($fb_id)
     {
@@ -293,7 +289,6 @@ class users extends query
      * @param $user_id
      * @param $password
      * @return bool
-     * @throws RuntimeException
      */
     public function checkPassById($user_id, $password)
     {
@@ -464,7 +459,6 @@ class users extends query
      * @param $offset
      * @param $order
      * @return bool|mixed
-     * @throws RuntimeException
      */
     public function getUsers($limit, $offset, $order)
     {

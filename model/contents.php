@@ -114,7 +114,7 @@ class contents extends query
      * @param $count
      * @return bool
      */
-    public function updateShare($content_id, $count)
+    public function updateCountShare($content_id, $count)
     {
         $query = $this->_query;
 
@@ -148,7 +148,7 @@ class contents extends query
      * @param $count
      * @return bool
      */
-    public function updateComment($content_id, $count)
+    public function updateCountComment($content_id, $count)
     {
         $query = $this->_query;
 
@@ -182,7 +182,7 @@ class contents extends query
      * @param $count
      * @return bool
      */
-    public function updateLike($content_id, $count)
+    public function updateCountLike($content_id, $count)
     {
         $query = $this->_query;
 

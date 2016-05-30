@@ -8,12 +8,17 @@ use max_api\contracts\api;
 use max_api\contracts\config;
 use max_api\contracts\guid;
 use max_api\contracts\sftp;
+use max_api\contracts\sms;
 use max_api\database\query;
 use max_api\model\categories;
 use max_api\model\comments;
 use max_api\model\contents;
+use max_api\model\likes;
 use max_api\model\media;
+use max_api\model\shares;
+use max_api\model\status;
 use max_api\model\users;
+use RuntimeException;
 
 
 /**
@@ -198,11 +203,11 @@ class maxApi extends api
                     $user_id = $users->registerFaceBook($name, $data);
 
                     if (!$user_id):
-                        $return = array(
+                        $return = [
                             "success" => false,
                             "errorCode" => "max07",
                             "error_list" => $users->__get("_query")->error_list
-                        );
+                        ];
 
                         return $this->response($this->json($return), 400);
 
@@ -415,7 +420,7 @@ class maxApi extends api
      */
     public function change_pass()
     {
-        $users = new user();
+        $users = new users();
         $token = $this->_request['token'];
         $userId = $this->_request['user_id'];
         $passOld = $this->_request['pass_old'];
@@ -465,7 +470,6 @@ class maxApi extends api
             "messages" => "Change pass success"
         ];
 
-        /** @var TYPE_NAME $this */
         return $this->response($this->json($return));
     }
 
@@ -474,7 +478,7 @@ class maxApi extends api
      */
     public function update_profile()
     {
-        $users = new user();
+        $users = new users();
 
         $token = $this->_request['token'];
 
@@ -543,7 +547,7 @@ class maxApi extends api
     public function upload_avatar()
     {
 
-        $users = new user();
+        $users = new users();
 
         $user_id = $this->_request['user_id'];
 
@@ -969,14 +973,14 @@ class maxApi extends api
         }
 
 
-        $parent_id = $this->_request['parent_id'];
+        $id = $this->_request['id'];
 
         $limit = $this->_request['limit'] ? $this->_request['limit'] : 10;
 
         $offset = $this->_request['offset'] ? $this->_request['offset'] : 0;
 
 
-        if (!$parent_id) {
+        if (!$id) {
             $return = array(
                 "success" => false,
                 "errorCode" => "max01",
@@ -985,9 +989,9 @@ class maxApi extends api
             return $this->response($this->json($return), 400);
         }
 
-        $list_comment_content = $comments->getCommentsByRelateType($parent_id, $limit, $offset, 'content');
+        $list_comment_content = $comments->getCommentsByRelateType($id, $limit, $offset, 'content');
 
-        $total = $comments->getCountComment($parent_id, 'content');
+        $total = $comments->getCountComment($id, 'content');
 
         if (!$list_comment_content) {
             $return = [
@@ -1039,13 +1043,13 @@ class maxApi extends api
         }
 
 
-        $parent_id = $this->_request['parent_id'];
+        $id = $this->_request['id'];
 
         $limit = $this->_request['limit'] ? $this->_request['limit'] : 10;
 
         $offset = $this->_request['offset'] ? $this->_request['offset'] : 0;
 
-        if (!$parent_id) {
+        if (!$id) {
             $return = array(
                 "success" => false,
                 "errorCode" => "max01",
@@ -1054,9 +1058,9 @@ class maxApi extends api
             return $this->response($this->json($return), 400);
         }
 
-        $list_comment_reply = $comments->getCommentsByRelateType($parent_id, $limit, $offset, 'comment');
+        $list_comment_reply = $comments->getCommentsByRelateType($id, $limit, $offset, 'comment');
 
-        $total = $comments->getCountComment($parent_id, 'comment');
+        $total = $comments->getCountComment($id, 'comment');
 
         if (!$list_comment_reply) {
             $return = [
@@ -1073,6 +1077,76 @@ class maxApi extends api
             "data" => [
                 "total" => $total,
                 "list_comment_reply" => $list_comment_reply
+            ]
+        ];
+
+        return $this->response($this->json($return));
+    }
+
+    /**
+     * TODO: lay comment theo status
+     */
+    public function get_comments_by_status()
+    {
+        $comments = new comments();
+
+        $token = $this->_request['token'];
+
+        $check = $comments->checkToken($token);
+
+        if (!$check) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max04",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+
+        $id = $this->_request['id'];
+
+        $limit = $this->_request['limit'] ? $this->_request['limit'] : 10;
+
+        $offset = $this->_request['offset'] ? $this->_request['offset'] : 0;
+
+
+        if (!$id) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $list_comment_content = $comments->getCommentsByRelateType($id, $limit, $offset, 'status');
+
+        $total = $comments->getCountComment($id, 'status');
+
+        if (!$list_comment_content) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max19",
+                "error_list" => $comments->__get("_query")->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        //get comment by comment
+        foreach ($list_comment_content as $comment) {
+            $comment->comment_reply = $comments->getCommentsByRelateType($comment->id, $limit, $offset, 'status');
+            $comment->total_reply = $comments->getCountComment($comment->id, 'status');
+        }
+
+        $return = [
+            "success" => true,
+            "data" => [
+                "content" => [
+                    "total" => $total,
+                    "list_comment_content" => $list_comment_content
+                ],
             ]
         ];
 
@@ -1099,7 +1173,7 @@ class maxApi extends api
             return $this->response($this->json($return), 400);
         }
 
-        $parent_id = $this->_request['parent_id'];
+        $id = $this->_request['id'];
 
         $user_id = $this->_request['user_id'];
 
@@ -1107,8 +1181,9 @@ class maxApi extends api
 
         $comment_text = $this->_request['comment'];
 
+        $media_id = $this->_request['media_id'];
 
-        if (!$parent_id || !$user_id || !$comment_text || !in_array($relate_type, config::get('sftp.upload.relate_type'))) {
+        if (!$id || !$user_id || !$comment_text || !in_array($relate_type, config::get('sftp.upload.relate_type'))) {
             $return = array(
                 "success" => false,
                 "errorCode" => "max01",
@@ -1117,7 +1192,8 @@ class maxApi extends api
             return $this->response($this->json($return), 400);
         }
 
-        $setComment = $comments->setComment($parent_id, $user_id, $comment_text, $relate_type);
+        $setComment = $comments->setComment($id, $user_id, $comment_text, $relate_type);
+
 
         if (!$setComment) {
             $return = [
@@ -1127,6 +1203,12 @@ class maxApi extends api
             ];
 
             return $this->response($this->json($return), 400);
+        }
+
+        if ($media_id) {
+            $media = new media();
+
+            $media->updateParent($media_id, $setComment);
         }
 
         $return = [
@@ -1250,6 +1332,243 @@ class maxApi extends api
         return $this->response($this->json($return));
     }
 
+
+    /**
+     * TODO: Tao moi status
+     */
+    public function set_status()
+    {
+        $status = new status();
+
+        $token = $this->_request['token'];
+
+        $check = $status->checkToken($token);
+
+        if (!$check) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max04",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $user_id = $this->_request['user_id'];
+
+        $text = $this->_request['text'];
+
+        $media_id = $this->_request['media_id'];
+
+        if (!$user_id || !$text) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $last_id = $status->setStatus($user_id, $text);
+
+        if (!$last_id) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max07",
+                "error_list" => $status->__get("_query")->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+
+        if ($media_id) {
+            if ($media_id) {
+                $media = new media();
+
+                $media->updateParent($media_id, $last_id);
+            }
+        }
+        $return = [
+            "success" => true,
+            "data" => [
+                "id" => $last_id
+            ]
+        ];
+
+        if ($status->__get("_query")->error_list) {
+            $return["message"] = [
+                "update count not success on content",
+                "error" => $status->__get("_query")->error_list
+            ];
+        }
+
+        return $this->response($this->json($return));
+
+    }
+
+    /**
+     * TODO: lay status theo nguoi dung
+     */
+    public function get_status_by_user()
+    {
+        $status = new status();
+
+        $token = $this->_request['token'];
+
+        $check = $status->checkToken($token);
+
+        if (!$check) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max04",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $user_id = $this->_request['user_id'];
+
+        $limit = $this->_request['limit'] ? $this->_request['limit'] : 10;
+
+        $offset = $this->_request['offset'] ? $this->_request['offset'] : 0;
+
+        if (!$user_id) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $list = $status->getStatusByUser($user_id, $limit, $offset);
+
+        if (!$list) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max19",
+                "error_list" => $status->__get("_query")->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "data" => $list
+        ];
+
+        return $this->response($this->json($return));
+
+    }
+
+    /**
+     * TODO: Xoá trạng thái
+     */
+    public function delete_status()
+    {
+        $status = new status();
+
+        $token = $this->_request['token'];
+
+        $check = $status->checkToken($token);
+
+        if (!$check) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max04",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $id = $this->_request['id'];
+
+        if (!$id) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+
+        if (!$status->deleteComment($id)) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max20",
+                "error_list" => $status->__get("_query")->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "message" => "Delete success"
+        ];
+
+        return $this->response($this->json($return));
+    }
+
+    /**
+     * TODO: new share
+     */
+    public function set_share()
+    {
+        $shares = new shares();
+
+        $token = $this->_request['token'];
+
+        $check = $shares->checkToken($token);
+
+        if (!$check) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max04",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $id = $this->_request['id'];
+
+        $relate_type = $this->_request['relate_type'];
+
+        $user_id = $this->_request['user_id'];
+
+        if (!$id || !$relate_type || !$user_id) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $last_id = $shares->setShare($user_id, $id, $relate_type);
+
+        if (!$last_id) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max07",
+                "error_list" => $shares->__get("_query")->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "data" => [
+                "id" => $last_id
+            ]
+        ];
+
+        return $this->response($this->json($return));
+    }
+
     /**
      * TODO: Upload image by comment
      */
@@ -1274,7 +1593,7 @@ class maxApi extends api
 
         $user_id = $this->_request['user_id'];
 
-        $parent_id = $this->_request['parent_id'];
+        //   $parent_id = $this->_request['parent_id'];
 
         $relate_type = $this->_request['relate_type'];
 
@@ -1360,7 +1679,7 @@ class maxApi extends api
             $url = sprintf($config['upload']['url'], $relate_type, $user_id, $nameImage, $ext);
             $dirUp = sprintf($config['upload']['dir_base'], $relate_type, $user_id);
 
-            if (!$id_media = $media->setMedia($parent_id, $user_id, $url, 0, $relate_type)) {
+            if (!$id_media = $media->setMedia($user_id, $url, 0, $relate_type)) {
                 $return = [
                     "success" => false,
                     "errorCode" => "max07",
@@ -1423,14 +1742,270 @@ class maxApi extends api
         }
     }
 
+    /**
+     *
+     */
+    public function delete_media()
+    {
+        $media = new media();
+
+        $token = $this->_request['token'];
+
+        $check = $media->checkToken($token);
+
+        if (!$check) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max04",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $id_media = $this->_request['id'];
+
+        if (!$media->deleteMediaById($id_media)) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max07",
+                "error_list" => $media->__get('_query')->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "message" => "Delete success"
+        ];
+
+        return $this->response($this->json($return));
+    }
 
     /*
      * TODO: Like share
      */
 
-    public function like()
+    /**
+     * Like
+     *
+     * request: token, parent_id, relate_type, user_id
+     */
+    public function like_comment()
     {
+        $likes = new likes();
 
+        $token = $this->_request['token'];
+
+        $check = $likes->checkToken($token);
+
+        if (!$check) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max04",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $id = $this->_request['id'];
+
+        $user_id = $this->_request['user_id'];
+
+        if (!$id || !$user_id) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+
+        $like = $likes->checkLike($id, $user_id, 'comment');
+
+        if ($like) {
+            $setLike = $likes->like($id, $user_id, 'comment');
+        } else {
+            $setLike = $likes->unLike($id, $user_id, 'comment');
+        }
+
+        $total = $likes->getCountLike($id, 'comment');
+
+        $comments = new comments();
+
+        $comments->updateCountLike($id, $total);
+
+        if (!$setLike) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max07",
+                "error_list" => $likes->__get('_query')->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "data" => [
+                "like" => $like,
+                "total" => $total
+            ]
+        ];
+
+        return $this->response($this->json($return));
     }
 
+
+    /**
+     * TODO: Like Content
+     */
+    public function like_content()
+    {
+        $likes = new likes();
+
+        $token = $this->_request['token'];
+
+        $check = $likes->checkToken($token);
+
+        if (!$check) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max04",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $id = $this->_request['id'];
+
+        $user_id = $this->_request['user_id'];
+
+        if (!$id || !$user_id) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+
+        $like = $likes->checkLike($id, $user_id, 'content');
+
+        if ($like) {
+            $setLike = $likes->like($id, $user_id, 'content');
+        } else {
+            $setLike = $likes->unLike($id, $user_id, 'content');
+        }
+
+        $total = $likes->getCountLike($id, 'content');
+
+        $contents = new contents();
+
+        $contents->updateCountLike($id, $total);
+
+        if (!$setLike) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max07",
+                "error_list" => $likes->__get('_query')->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "data" => [
+                "like" => $like,
+                "total" => $total
+            ]
+        ];
+
+        return $this->response($this->json($return));
+    }
+
+    /**
+     * Update like status
+     */
+    public function like_status()
+    {
+        $likes = new likes();
+
+        $token = $this->_request['token'];
+
+        $check = $likes->checkToken($token);
+
+        if (!$check) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max04",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $id = $this->_request['id'];
+
+        $user_id = $this->_request['user_id'];
+
+        if (!$id || !$user_id) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+
+        $like = $likes->checkLike($id, $user_id, 'status');
+
+        if ($like) {
+            $setLike = $likes->like($id, $user_id, 'status');
+        } else {
+            $setLike = $likes->unLike($id, $user_id, 'status');
+        }
+
+        $total = $likes->getCountLike($id, 'status');
+
+        $status = new status();
+
+        $status->updateCountLike($id, $total);
+
+        if (!$setLike) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max07",
+                "error_list" => $likes->__get('_query')->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "data" => [
+                "like" => $like,
+                "total" => $total
+            ]
+        ];
+
+        return $this->response($this->json($return));
+    }
+
+
+    public function test()
+    {
+        $code = 902234;
+
+        $sms = new sms();
+
+        $test = $sms->sendRegister($code, "01693493926");
+
+        echo "<pre>";
+        print_r($test);
+    }
 }

@@ -35,6 +35,7 @@ class comments extends query
                 $query->quoteName("comment.edit_date"),
                 $query->quoteName("comment.relate_type"),
                 $query->quoteName("comment.parent_id"),
+                $query->quoteName("comment.like_")
             ))
             ->from(
                 $query->quoteName("userinformation_usercomment", "comment")
@@ -143,16 +144,36 @@ class comments extends query
         if (!$last_id) {
             return false;
         }
+        $count = $this->getCountComment($parent_id, $relate_type);
 
         if ($relate_type === 'content') {
-            $count = $this->getCountComment($parent_id, $relate_type);
 
             $content = new contents();
 
-            $update = $content->updateComment($parent_id, $count);
+            $update = $content->updateCountComment($parent_id, $count);
 
             if (!$update) {
                 $this->_query->error_list = $content->_query->error_list;
+            }
+        }
+        if ($relate_type === 'comment') {
+            $comment = new comments();
+
+            $update = $comment->updateCountComment($parent_id, $count);
+
+            if (!$update) {
+                $this->_query->error_list = $comment->_query->error_list;
+            }
+        }
+
+        if ($relate_type === 'status') {
+
+            $status = new status();
+
+            $update = $status->updateCountComment($parent_id, $count);
+
+            if (!$update) {
+                $this->_query->error_list = $status->_query->error_list;
             }
         }
 
@@ -217,6 +238,70 @@ class comments extends query
             $query->error_list = $media->_query->error_list;
         }
 
+        return true;
+    }
+
+    /**
+     *
+     * Set Count Comment
+     *
+     * @param $id
+     * @param $count
+     * @return bool
+     */
+    public function updateCountComment($id, $count)
+    {
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query
+            ->update(
+                $query->quoteName("userinformation_usercomment")
+            )
+            ->set(array(
+                $query->quoteName("comment_count") . " = " . $query->quote($count),
+            ))
+            ->where(array(
+                $query->quoteName("id") . " = " . $query->quote($id)
+            ));
+
+
+        if (!$query->setUpdate()) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     *
+     * Set Count Like
+     *
+     * @param $id
+     * @param $count
+     * @return bool
+     */
+    public function updateCountLike($id, $count)
+    {
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query
+            ->update(
+                $query->quoteName("userinformation_usercomment")
+            )
+            ->set(array(
+                $query->quoteName("like_count") . " = " . $query->quote($count),
+            ))
+            ->where(array(
+                $query->quoteName("id") . " = " . $query->quote($id)
+            ));
+
+
+        if (!$query->setUpdate()) {
+            return false;
+        }
         return true;
     }
 

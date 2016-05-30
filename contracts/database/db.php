@@ -147,6 +147,4 @@ abstract class db implements dbImplement
      * @var db error MYSQL
      */
     public $error_list;
-
-
 }
