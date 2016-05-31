@@ -35,7 +35,7 @@ class comments extends query
                 $query->quoteName("comment.edit_date"),
                 $query->quoteName("comment.relate_type"),
                 $query->quoteName("comment.parent_id"),
-                $query->quoteName("comment.like_")
+                $query->quoteName("comment.like_count")
             ))
             ->from(
                 $query->quoteName("userinformation_usercomment", "comment")

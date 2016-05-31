@@ -1,14 +1,12 @@
 <?php
 return [
-    "end_point" => "XXXX",
+    "end_point" => "xxx",
 
-    "UUID" => "XXX",
+    "api_key" => "xxx",
 
-    "api_key" => "XXX",
+    "api_secret" => "xxx",
 
-    "api_secret" => "XXXX",
-
-    "brand_name" => "XXXXX",
+    "brand_name" => "xxx",
 
     "text" => [
 
@@ -16,6 +14,4 @@ return [
 
         "re_pass" => "[CSKH] TAI KHOAN: Mat khau moi cua ban la : %s"
     ]
-
-
 ];

@@ -7,8 +7,9 @@ namespace max_api\api;
 use max_api\contracts\api;
 use max_api\contracts\config;
 use max_api\contracts\guid;
+use max_api\contracts\random;
 use max_api\contracts\sftp;
-use max_api\contracts\sms;
+use max_api\contracts\smsApi;
 use max_api\database\query;
 use max_api\model\categories;
 use max_api\model\comments;
@@ -16,6 +17,7 @@ use max_api\model\contents;
 use max_api\model\likes;
 use max_api\model\media;
 use max_api\model\shares;
+use max_api\model\sms;
 use max_api\model\status;
 use max_api\model\users;
 use RuntimeException;
@@ -398,12 +400,31 @@ class maxApi extends api
 
                 endif;
 
+
                 $return = array(
                     "success" => true,
-                    "data" => array(
-                        "id" => $register
-                    ),
+                    "data" => $register
                 );
+
+                /*
+                 * Send SMS
+                 */
+                $sms = new smsApi();
+
+                $dataStringSms = $sms->sendRegister($register['confirm_code'], $username);
+
+                $dataSms = json_decode($dataStringSms);
+
+                $smsBase = [
+                    "phone" => $username,
+                    "id" => $dataSms->submission->sms[0]->id,
+                    "status" => $dataSms->submission->sms[0]->status,
+                ];
+                $smsModel = new sms();
+
+                if (!$smsModel->insertSms($smsBase)) {
+                    $return["sms_message"] = $smsModel->__get("_query")->error_list;
+                }
 
                 return $this->response($this->json($return));
                 break;
@@ -413,6 +434,54 @@ class maxApi extends api
                 break;
         }
 
+    }
+
+    /**
+     * Active tài khoản đã được kích hoạt thông qua SMS
+     */
+    public function active()
+    {
+        $users = new users();
+
+        $token = $this->_request['token'];
+
+        $check = $users->checkToken($token);
+
+        if (!$check):
+            $return = array(
+                "success" => false,
+                "errorCode" => "max04",
+            );
+
+            return $this->response($this->json($return), 400);
+        endif; //end check
+
+        $id = $this->_request['id'];
+        if (!$id):
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        endif; //end passnew pass old
+
+        if (!$users->active($id)) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max07",
+                "error_list" => $users->__get("_query")->error_list
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "messages" => "active success"
+        ];
+
+        return $this->response($this->json($return));
     }
 
     /**
@@ -473,6 +542,76 @@ class maxApi extends api
         return $this->response($this->json($return));
     }
 
+    /**
+     * TODO: reset mật khẩu
+     */
+    public function forget_pass()
+    {
+        $users = new users();
+
+        $token = $this->_request['token'];
+
+        $check = $users->checkToken($token);
+
+        if (!$check) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max04",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $username = $this->_request['username'];
+
+        $id = $users->getIdByUsername($username);
+
+        if (!$id) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max19",
+                "error_list" => $users->__get("_query")->error_list
+            ];
+            return $this->response($this->json($return), 400);
+        }
+
+        $password = random::renderString(6);
+
+        $changePass = $users->changePass($id, $password);
+
+        if (!$changePass) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max07",
+                "error_list" => $users->__get("_query")->error_list
+            ];
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "messages" => "Change pass success"
+        ];
+
+        $smsApi = new smsApi();
+
+        $dataStringSms = $smsApi->sendPassword($username,$password);
+
+        $dataSms = json_decode($dataStringSms);
+
+        $smsBase = [
+            "phone" => $username,
+            "id" => $dataSms->submission->sms[0]->id,
+            "status" => $dataSms->submission->sms[0]->status,
+        ];
+        $smsModel = new sms();
+
+        if (!$smsModel->insertSms($smsBase)) {
+            $return["sms_message"] = $smsModel->__get("_query")->error_list;
+        }
+
+        return $this->response($this->json($return));
+    }
     /**
      * TODO: Sửa thông tin cá nhân
      */
@@ -705,9 +844,8 @@ class maxApi extends api
             return $this->response($this->json($return), 400);
 
         }
-
-
     }
+
 
 
     /**
@@ -864,8 +1002,9 @@ class maxApi extends api
 
         $offset = $this->_request['offset'] ? $this->_request['offset'] : 0;
 
+        $current_user_id = $this->_request['c_user_id'];
 
-        if (!$cat_id):
+        if (!$cat_id || !$current_user_id):
             $return = array(
                 "success" => false,
                 "errorCode" => "max01",
@@ -884,6 +1023,11 @@ class maxApi extends api
             ];
 
             return $this->response($this->json($return), 400);
+        }
+
+        $likes = new likes();
+        foreach ($content as $post) {
+            $post->is_like = $likes->checkLike($post->id, $current_user_id, "content");
         }
 
         $return = [
@@ -921,8 +1065,9 @@ class maxApi extends api
 
         $offset = $this->_request['offset'] ? $this->_request['offset'] : 0;
 
+        $current_user_id = $this->_request['c_user_id'];
 
-        if (!$user_id):
+        if (!$user_id || !$current_user_id):
             $return = array(
                 "success" => false,
                 "errorCode" => "max01",
@@ -941,6 +1086,11 @@ class maxApi extends api
             ];
 
             return $this->response($this->json($return), 400);
+        }
+        //check like
+        $likes = new likes();
+        foreach ($content as $post) {
+            $post->is_like = $likes->checkLike($post->id, $current_user_id, "content");
         }
 
         $return = [
@@ -979,6 +1129,7 @@ class maxApi extends api
 
         $offset = $this->_request['offset'] ? $this->_request['offset'] : 0;
 
+        $current_user_id = $this->_request['c_user_id'] ? $this->_request['c_user_id'] : 0;
 
         if (!$id) {
             $return = array(
@@ -1002,11 +1153,17 @@ class maxApi extends api
 
             return $this->response($this->json($return), 400);
         }
-
+        $likes = new likes();
         //get comment by comment
         foreach ($list_comment_content as $comment) {
             $comment->comment_reply = $comments->getCommentsByRelateType($comment->id, $limit, $offset, 'comment');
+
+            foreach ($comment->comment_reply as $reply) {
+                $reply->is_like = $likes->checkLike($reply->id, $current_user_id, "comment");
+            }
+
             $comment->total_reply = $comments->getCountComment($comment->id, 'comment');
+            $comment->is_like = $likes->checkLike($comment->id, $current_user_id, "comment");
         }
 
         $return = [
@@ -1049,7 +1206,10 @@ class maxApi extends api
 
         $offset = $this->_request['offset'] ? $this->_request['offset'] : 0;
 
-        if (!$id) {
+
+        $current_user_id = $this->_request['c_user_id'] ? $this->_request['c_user_id'] : 0;
+
+        if (!$id || !$current_user_id) {
             $return = array(
                 "success" => false,
                 "errorCode" => "max01",
@@ -1071,6 +1231,13 @@ class maxApi extends api
 
             return $this->response($this->json($return), 400);
         }
+
+        //check like
+        $likes = new likes();
+        foreach ($list_comment_reply as $reply) {
+            $reply->is_like = $likes->checkLike($reply->id, $current_user_id, "comment");
+        }
+
 
         $return = [
             "success" => true,
@@ -1110,7 +1277,7 @@ class maxApi extends api
 
         $offset = $this->_request['offset'] ? $this->_request['offset'] : 0;
 
-
+        $current_user_id = $this->_request['c_user_id'] ? $this->_request['c_user_id'] : 0;
         if (!$id) {
             $return = array(
                 "success" => false,
@@ -1120,11 +1287,11 @@ class maxApi extends api
             return $this->response($this->json($return), 400);
         }
 
-        $list_comment_content = $comments->getCommentsByRelateType($id, $limit, $offset, 'status');
+        $list_comment_status = $comments->getCommentsByRelateType($id, $limit, $offset, 'status');
 
         $total = $comments->getCountComment($id, 'status');
 
-        if (!$list_comment_content) {
+        if (!$list_comment_status) {
             $return = [
                 "success" => false,
                 "errorCode" => "max19",
@@ -1133,11 +1300,17 @@ class maxApi extends api
 
             return $this->response($this->json($return), 400);
         }
-
+        $likes = new likes();
         //get comment by comment
-        foreach ($list_comment_content as $comment) {
+        foreach ($list_comment_status as $comment) {
             $comment->comment_reply = $comments->getCommentsByRelateType($comment->id, $limit, $offset, 'status');
+
+            foreach ($comment->comment_reply as $reply) {
+                $reply->is_like = $likes->checkLike($reply->id, $current_user_id, "status");
+            }
+
             $comment->total_reply = $comments->getCountComment($comment->id, 'status');
+            $comment->is_like = $likes->checkLike($comment->id, $current_user_id, "status");
         }
 
         $return = [
@@ -1145,7 +1318,7 @@ class maxApi extends api
             "data" => [
                 "content" => [
                     "total" => $total,
-                    "list_comment_content" => $list_comment_content
+                    "list_comment_content" => $list_comment_status
                 ],
             ]
         ];
@@ -1824,7 +1997,7 @@ class maxApi extends api
 
         $like = $likes->checkLike($id, $user_id, 'comment');
 
-        if ($like) {
+        if (!$like) {
             $setLike = $likes->like($id, $user_id, 'comment');
         } else {
             $setLike = $likes->unLike($id, $user_id, 'comment');
@@ -1894,7 +2067,7 @@ class maxApi extends api
 
         $like = $likes->checkLike($id, $user_id, 'content');
 
-        if ($like) {
+        if (!$like) {
             $setLike = $likes->like($id, $user_id, 'content');
         } else {
             $setLike = $likes->unLike($id, $user_id, 'content');
@@ -1963,7 +2136,7 @@ class maxApi extends api
 
         $like = $likes->checkLike($id, $user_id, 'status');
 
-        if ($like) {
+        if (!$like) {
             $setLike = $likes->like($id, $user_id, 'status');
         } else {
             $setLike = $likes->unLike($id, $user_id, 'status');
@@ -1996,16 +2169,4 @@ class maxApi extends api
         return $this->response($this->json($return));
     }
 
-
-    public function test()
-    {
-        $code = 902234;
-
-        $sms = new sms();
-
-        $test = $sms->sendRegister($code, "01693493926");
-
-        echo "<pre>";
-        print_r($test);
-    }
 }

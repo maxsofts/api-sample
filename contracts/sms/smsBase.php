@@ -13,7 +13,7 @@ interface smsBase
 
     public function sendRegister($code,$phone);
 
-    public function sendPassword($password);
+    public function sendPassword($phone,$password);
 
     public function send($dataString);
 

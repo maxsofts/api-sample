@@ -98,7 +98,7 @@ class likes extends query
 
         $query->setQuery();
 
-        if ($count = $query->loadResult()) {
+        if (!$query->loadResult()) {
             return false;
         }
 

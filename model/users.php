@@ -2,6 +2,7 @@
 
 namespace max_api\model;
 
+use max_api\contracts\random;
 use max_api\database\query;
 use max_api\contracts\password;
 
@@ -146,9 +147,10 @@ class users extends query
 
         $last_user_id = $query->setInsert();
 
-        /**
-         * Thiếu phần tiến hành số điện thoại kích hoạt
+        /*
+         * Tạo mã kích hoạt random
          */
+        $confirm_code = random::render();
 
         /*
          * Insert profile with user
@@ -161,6 +163,8 @@ class users extends query
 
         $query->set(array(
             $query->quoteName("user_id_id") . " = " . $query->quote($last_user_id),
+            $query->quoteName("phone") . " = " . $query->quote($data["username"]),
+            $query->quoteName("confirm_code") . " = " . $query->quote($confirm_code),
         ));
 
         $query->setInsert();
@@ -168,9 +172,16 @@ class users extends query
         if ($query->db->errno) {
             return false;
         }
+        /**
+         * Insert thành công
+         */
+        $data = [
+            "id" => $last_user_id,
+            "confirm_code" => $confirm_code,
+            "is_active" => 0
+        ];
 
-
-        return $last_user_id;
+        return $data;
     }
 
     /**
@@ -450,6 +461,27 @@ class users extends query
         return true;
     }
 
+    public function active($id)
+    {
+        $query = $this->_query;
+
+        $query->getQuery();
+
+
+        $query
+            ->update(
+                $query->quoteName("auth_user")
+            )
+            ->set(
+                $query->quoteName("is_active") . " = " . $query->quote(1)
+            )
+            ->where(array(
+                $query->quoteName("id") . " = " . $query->quote($id),
+            ));
+
+
+        return $query->setUpdate();
+    }
 
     /**
      *
@@ -501,5 +533,34 @@ class users extends query
         }
 
         return $list;
+    }
+
+    public function getIdByUsername($username)
+    {
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query->select(array(
+            $query->quoteName("user.id"),
+        ));
+
+        $query->from(
+            $query->quoteName("auth_user", "user")
+        );
+
+        $query->where(
+            $query->quoteName("username") . " = " . $query->quote($username)
+        );
+
+        $query->setQuery();
+
+        $id = $query->loadResult();
+
+
+        if (!$id) {
+            return false;
+        }
+        return $id;
     }
 }

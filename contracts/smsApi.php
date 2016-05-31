@@ -3,7 +3,7 @@ namespace max_api\contracts;
 
 use max_api\contracts\sms\smsAbstract;
 
-class sms extends smsAbstract
+class smsApi extends smsAbstract
 {
 
     public function __construct()
@@ -16,6 +16,11 @@ class sms extends smsAbstract
         $this->config = config::get('sms');
     }
 
+    /**
+     * @param $code
+     * @param $phone
+     * @return mixed
+     */
     public function sendRegister($code, $phone)
     {
         $data = [
@@ -24,9 +29,9 @@ class sms extends smsAbstract
                 "api_secret" => $this->config['api_secret'],
                 "sms" => [
                     [
-                        "id" => $this->config['UUID'],
-                        "brandname" => $this->config['brandname'],
-                        "text" => sprintf($this->config['registed'], $code),
+                        "id" => UUID::v4(),
+                        "brandname" => $this->config['brand_name'],
+                        "text" => sprintf($this->config['text']['register'], $code),
                         "to" => $phone
                     ]
                 ]
@@ -37,16 +42,33 @@ class sms extends smsAbstract
     }
 
     /**
+     * @param $phone
      * @param $password
+     * @return mixed
      */
-    public function sendPassword($password)
+    public function sendPassword($phone,$password)
     {
+        $data = [
+            "submission" => [
+                "api_key" => $this->config['api_key'],
+                "api_secret" => $this->config['api_secret'],
+                "sms" => [
+                    [
+                        "id" => UUID::v4(),
+                        "brandname" => $this->config['brand_name'],
+                        "text" => sprintf($this->config['text']['re_pass'], $password),
+                        "to" => $phone
+                    ]
+                ]
+            ],
+        ];
 
+        return $this->send($data);
     }
 
     /**
      * @param $data
-     * @return mixed
+     * @return mixed // {"submission":{"sms":[{"id":"09e0332c-d52b-49cd-bfed-cc26a70f2b56","status":0,"error_message":""}]}}
      */
     public function send($data)
     {

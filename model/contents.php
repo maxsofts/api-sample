@@ -24,7 +24,10 @@ class contents extends query
         $query->getQuery();
 
         $query
-            ->select("*")
+            ->select([
+                "`content`.`id`",
+                "`content`.*"
+            ])
             ->from(
                 $query->quoteName("content_content", "content")
             )
@@ -72,13 +75,14 @@ class contents extends query
         $query->getQuery();
 
         $query
-            ->select("*")
+            ->select([
+                "`content`.`id`",
+                "`content`.*"
+            ])
             ->from(
                 $query->quoteName("content_content", "content")
             )
-            ->where(
-                $query->quoteName("content.person_create_id") . " = " . $query->quote($user_id)
-            )
+
             //join category
             ->select(array(
                 $query->quoteName("category.title", "category_name"),
@@ -90,6 +94,11 @@ class contents extends query
                 $query->quoteName("person_create.last_name", "person_create_last_name"),
             ))
             ->join("LEFT", "`auth_user` AS `person_create` ON `person_create`.`id` = `content`.`person_create_id`")
+
+            ->where(
+                $query->quoteName("content.person_create_id") . " = " . $query->quote($user_id)
+            )
+
             ->order(
                 $query->quoteName("content.publicDate") . " DESC"
             )
