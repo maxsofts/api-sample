@@ -29,7 +29,7 @@ class smsApi extends smsAbstract
                 "api_secret" => $this->config['api_secret'],
                 "sms" => [
                     [
-                        "id" => UUID::v4(),
+                        "id" => uuid::v4(),
                         "brandname" => $this->config['brand_name'],
                         "text" => sprintf($this->config['text']['register'], $code),
                         "to" => $phone
@@ -54,7 +54,7 @@ class smsApi extends smsAbstract
                 "api_secret" => $this->config['api_secret'],
                 "sms" => [
                     [
-                        "id" => UUID::v4(),
+                        "id" => uuid::v4(),
                         "brandname" => $this->config['brand_name'],
                         "text" => sprintf($this->config['text']['re_pass'], $password),
                         "to" => $phone

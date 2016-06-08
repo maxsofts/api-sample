@@ -61,7 +61,7 @@ class comments extends query
                 $query->quoteName("comment.relate_type") . " = " . $query->quote($relate_type)
             ))
             ->order(
-                $query->quoteName("comment.create_date") . " ASC"
+                $query->quoteName("comment.create_date") . " DESC"
             )
             ->setlimit($limit, $offset);
 

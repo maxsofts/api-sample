@@ -1,6 +1,7 @@
 <?php
 namespace max_api\model;
 
+use max_api\contracts\config;
 use max_api\database\query;
 
 class sms extends query
@@ -24,4 +25,42 @@ class sms extends query
 
         return $query->setInsert();
     }
+
+    /**
+     * @param $phone
+     * @return bool
+     */
+    public function checkLimitTime($phone)
+    {
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query
+            ->select(
+                $query->quoteName("create_date")
+            )
+            ->from(
+                $query->quoteName("api_sendsms")
+            )
+            ->where([
+                $query->quoteName("phone") . " = " . $query->quote($phone),
+                $query->quoteName("status") . " = " . $query->quote(0),
+            ])
+            ->order("create_date DESC");
+
+        $query->setQuery();
+
+
+        $date = $query->loadResult();
+
+        if (!$date) {
+            return true;
+        }
+
+        $limitTime = config::get("sms.limit_time");
+
+        return strtotime("now") > strtotime("$date +$limitTime minutes") ? true : false;
+    }
+
 }

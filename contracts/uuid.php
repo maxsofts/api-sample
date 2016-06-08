@@ -13,7 +13,7 @@ namespace max_api\contracts;
  * @author Andrew Moore
  * @link http://www.php.net/manual/en/function.uniqid.php#94959
  */
-class UUID
+class uuid
 {
     /**
      *

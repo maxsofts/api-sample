@@ -7,6 +7,7 @@ namespace max_api\api;
 use max_api\contracts\api;
 use max_api\contracts\config;
 use max_api\contracts\guid;
+use max_api\contracts\notifications;
 use max_api\contracts\random;
 use max_api\contracts\sftp;
 use max_api\contracts\smsApi;
@@ -15,6 +16,7 @@ use max_api\model\categories;
 use max_api\model\comments;
 use max_api\model\contents;
 use max_api\model\likes;
+use max_api\model\matches;
 use max_api\model\media;
 use max_api\model\shares;
 use max_api\model\sms;
@@ -381,6 +383,19 @@ class maxApi extends api
                     return $this->response($this->json($return), 400);
                 endif;
 
+
+                $smsModel = new sms();
+
+                if (!$smsModel->checkLimitTime($username)) {
+                    $return = array(
+                        "success" => false,
+                        "errorCode" => "max22",
+                        "limit_time" => config::get("sms.limit_time")
+                    );
+
+                    return $this->response($this->json($return), '400');
+                }
+
                 $data = [
                     "first_name" => $name,
                     "username" => $username,
@@ -420,7 +435,6 @@ class maxApi extends api
                     "id" => $dataSms->submission->sms[0]->id,
                     "status" => $dataSms->submission->sms[0]->status,
                 ];
-                $smsModel = new sms();
 
                 if (!$smsModel->insertSms($smsBase)) {
                     $return["sms_message"] = $smsModel->__get("_query")->error_list;
@@ -442,6 +456,7 @@ class maxApi extends api
     public function active()
     {
         $users = new users();
+
 
         $token = $this->_request['token'];
 
@@ -485,6 +500,107 @@ class maxApi extends api
     }
 
     /**
+     * TODO: gửi lại mã kích hoạt
+     */
+    public function send_new_code()
+    {
+        $users = new users();
+
+        $smsModel = new sms();
+
+        $token = $this->_request['token'];
+
+        $check = $users->checkToken($token);
+
+        if (!$check):
+            $return = array(
+                "success" => false,
+                "errorCode" => "max04",
+            );
+
+            return $this->response($this->json($return), 400);
+        endif; //end check
+
+        $phone = $this->_request['phone'];
+
+        if (!$smsModel->checkLimitTime($phone)) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max22",
+                "limit_time" => config::get("sms.limit_time")
+            );
+
+            return $this->response($this->json($return), '400');
+        }
+
+        $user_data = $users->getAllByUsername($phone);
+
+        if (!$user_data) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max19",
+                "error_list" => $users->__get("_query")->error_list
+            );
+
+            return $this->response($this->json($return), '400');
+        }
+
+        if ($user_data->is_active) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max21"
+            );
+
+            return $this->response($this->json($return), '400');
+        }
+
+
+        $confirm_code = $users->update_confirm_code($user_data->id);
+
+        if (!$confirm_code) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max07",
+                "error_list" => $users->__get("_query")->error_list
+            );
+
+            return $this->response($this->json($return), '400');
+        }
+
+        $return = array(
+            "success" => true,
+            "data" => [
+                'id' => $user_data->id,
+                'confirm_code' => $confirm_code,
+                'is_active' => $user_data->is_active
+            ]
+        );
+
+        /*
+         * Send SMS
+         */
+
+        $sms = new smsApi();
+
+        $dataStringSms = $sms->sendRegister($confirm_code, $phone);
+
+        $dataSms = json_decode($dataStringSms);
+
+        $smsBase = [
+            "phone" => $phone,
+            "id" => $dataSms->submission->sms[0]->id,
+            "status" => $dataSms->submission->sms[0]->status,
+        ];
+
+        if (!$smsModel->insertSms($smsBase)) {
+            $return["sms_message"] = $smsModel->__get("_query")->error_list;
+        }
+
+        return $this->response($this->json($return));
+
+    }
+
+    /**
      * TODO: Thay đổi mật khẩu
      */
     public function change_pass()
@@ -524,7 +640,7 @@ class maxApi extends api
             return $this->response($this->json($return), 400);
         endif;
 
-        if (!$users->changePass($userId, $passOld)):
+        if (!$users->changePass($userId, $passNew)):
             $return = array(
                 "success" => false,
                 "errorCode" => "max07",
@@ -564,6 +680,18 @@ class maxApi extends api
 
         $username = $this->_request['username'];
 
+        $smsModel = new sms();
+
+        if (!$smsModel->checkLimitTime($username)) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max22",
+                "limit_time" => config::get("sms.limit_time")
+            );
+
+            return $this->response($this->json($return), '400');
+        }
+
         $id = $users->getIdByUsername($username);
 
         if (!$id) {
@@ -590,12 +718,15 @@ class maxApi extends api
 
         $return = [
             "success" => true,
+            "data" => [
+                'id' => $id
+            ],
             "messages" => "Change pass success"
         ];
 
         $smsApi = new smsApi();
 
-        $dataStringSms = $smsApi->sendPassword($username,$password);
+        $dataStringSms = $smsApi->sendPassword($username, $password);
 
         $dataSms = json_decode($dataStringSms);
 
@@ -604,7 +735,6 @@ class maxApi extends api
             "id" => $dataSms->submission->sms[0]->id,
             "status" => $dataSms->submission->sms[0]->status,
         ];
-        $smsModel = new sms();
 
         if (!$smsModel->insertSms($smsBase)) {
             $return["sms_message"] = $smsModel->__get("_query")->error_list;
@@ -612,6 +742,7 @@ class maxApi extends api
 
         return $this->response($this->json($return));
     }
+
     /**
      * TODO: Sửa thông tin cá nhân
      */
@@ -845,7 +976,6 @@ class maxApi extends api
 
         }
     }
-
 
 
     /**
@@ -1387,7 +1517,8 @@ class maxApi extends api
         $return = [
             "success" => true,
             "data" => [
-                "id" => $setComment
+                "id" => $setComment,
+                "comment" => $comment_text,
             ]
         ];
 
@@ -1448,7 +1579,10 @@ class maxApi extends api
 
         $return = [
             "success" => true,
-            "message" => "Update success"
+            "data" => [
+                "id" => $id,
+                "comment" => $comment_text
+            ]
         ];
 
 
@@ -1575,9 +1709,56 @@ class maxApi extends api
             ];
         }
 
+
         return $this->response($this->json($return));
 
     }
+
+    /**
+     * TODO: sửa trạng thái
+     */
+    public function edit_status()
+    {
+        $status = new status();
+
+        $token = $this->_request['token'];
+
+        $check = $status->checkToken($token);
+
+        if (!$check) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max04",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $id = $this->_request['id'];
+
+        $text = $this->_request['text'];
+
+        if (!$id || !$text) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        if (!$status->updateStatus($id, $text)) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max07",
+                "error_list" => $status->__get("_query")->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+    }
+
 
     /**
      * TODO: lay status theo nguoi dung
@@ -1927,10 +2108,10 @@ class maxApi extends api
         $check = $media->checkToken($token);
 
         if (!$check) {
-            $return = array(
+            $return = [
                 "success" => false,
                 "errorCode" => "max04",
-            );
+            ];
 
             return $this->response($this->json($return), 400);
         }
@@ -1973,10 +2154,10 @@ class maxApi extends api
         $check = $likes->checkToken($token);
 
         if (!$check) {
-            $return = array(
+            $return = [
                 "success" => false,
                 "errorCode" => "max04",
-            );
+            ];
 
             return $this->response($this->json($return), 400);
         }
@@ -1986,10 +2167,10 @@ class maxApi extends api
         $user_id = $this->_request['user_id'];
 
         if (!$id || !$user_id) {
-            $return = array(
+            $return = [
                 "success" => false,
                 "errorCode" => "max01",
-            );
+            ];
 
             return $this->response($this->json($return), 400);
         }
@@ -2056,10 +2237,10 @@ class maxApi extends api
         $user_id = $this->_request['user_id'];
 
         if (!$id || !$user_id) {
-            $return = array(
+            $return = [
                 "success" => false,
                 "errorCode" => "max01",
-            );
+            ];
 
             return $this->response($this->json($return), 400);
         }
@@ -2112,10 +2293,10 @@ class maxApi extends api
         $check = $likes->checkToken($token);
 
         if (!$check) {
-            $return = array(
+            $return = [
                 "success" => false,
                 "errorCode" => "max04",
-            );
+            ];
 
             return $this->response($this->json($return), 400);
         }
@@ -2125,10 +2306,10 @@ class maxApi extends api
         $user_id = $this->_request['user_id'];
 
         if (!$id || !$user_id) {
-            $return = array(
+            $return = [
                 "success" => false,
                 "errorCode" => "max01",
-            );
+            ];
 
             return $this->response($this->json($return), 400);
         }
@@ -2164,6 +2345,514 @@ class maxApi extends api
                 "like" => $like,
                 "total" => $total
             ]
+        ];
+
+        return $this->response($this->json($return));
+    }
+
+    /*
+     * TODO: Lấy thông tin giải
+     */
+    public function get_league()
+    {
+        $matches = new matches();
+
+        $token = $this->_request['token'];
+
+        $check = $matches->checkToken($token);
+
+        if (!$check) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max04",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $league = $matches->getLeague();
+
+        if (!$league) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max19",
+                "error_list" => $matches->__get('_query')->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "data" => $league
+        ];
+
+        return $this->response($this->json($return));
+
+    }
+
+    /**
+     *TODO: get matches by league
+     */
+    public function get_matches_by_league()
+    {
+        $matches = new matches();
+
+        $token = $this->_request['token'];
+
+        $check = $matches->checkToken($token);
+
+        if (!$check) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max04",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $id = $this->_request['id'];
+
+        $user_id = $this->_request['user_id'];
+
+        $limit = $this->_request['limit'] ? $this->_request['limit'] : 20;
+
+        $offset = $this->_request['offset'] ? $this->_request['offset'] : 0;
+
+        if (!$id) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max01",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $list = $matches->getMatchesByLeague($id, $limit, $offset);
+
+        if (!$list) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max19",
+                "error_list" => $matches->__get('_query')->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        if ($user_id) {
+            foreach ($list as $match) {
+                $match->is_follow = $matches->checkFollow($user_id, $match->id);
+            }
+        }
+
+        $return = [
+            "success" => true,
+            "data" => $list
+        ];
+
+        return $this->response($this->json($return));
+
+    }
+
+    /**
+     * TODO: lấy danh sách các trận đấu theo ngày
+     */
+    public function get_matches_by_date()
+    {
+        $matches = new matches();
+
+        $token = $this->_request['token'];
+
+        $check = $matches->checkToken($token);
+
+        if (!$check) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max04",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $date = $this->_request['date'];
+
+        $user_id = $this->_request['user_id'];
+
+        $dateObject = date_create($date);
+
+        $league_id = $this->_request['league_id'];
+
+        $limit = $this->_request['limit'] ? $this->_request['limit'] : 20;
+
+        $offset = $this->_request['offset'] ? $this->_request['offset'] : 0;
+
+        if (!$dateObject || !$date) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max01",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $list = $matches->getMatchesByDate($date, $limit, $offset, $league_id);
+
+
+        if (!$list) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max19",
+                "error_list" => $matches->__get('_query')->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        if ($user_id) {
+            foreach ($list as $match) {
+                $match->is_follow = $matches->checkFollow($user_id, $match->id);
+            }
+        }
+
+        $return = [
+            "success" => true,
+            "data" => $list
+        ];
+
+        return $this->response($this->json($return));
+    }
+
+    /**
+     * TODO: lấy danh sách trận đấu HOT -- có thể theo giải
+     */
+    public function get_matches_hot()
+    {
+        $matches = new matches();
+
+        $token = $this->_request['token'];
+
+        $check = $matches->checkToken($token);
+
+        if (!$check) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max04",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+        $user_id = $this->_request['user_id'];
+
+        $limit = $this->_request['limit'] ? $this->_request['limit'] : 20;
+
+        $offset = $this->_request['offset'] ? $this->_request['offset'] : 0;
+
+        $league_id = $this->_request['league_id'];
+
+        $list = $matches->getMatchesHot($limit, $offset, $league_id);
+
+
+        if (!$list) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max19",
+                "error_list" => $matches->__get('_query')->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        if ($user_id) {
+            foreach ($list as $match) {
+                $match->is_follow = $matches->checkFollow($user_id, $match->id);
+            }
+        }
+
+        $return = [
+            "success" => true,
+            "data" => $list
+        ];
+
+        return $this->response($this->json($return));
+    }
+
+    /**
+     * TODO: lấy trận đấu đã kết thúc
+     */
+    public function get_matches_end()
+    {
+        $matches = new matches();
+
+        $token = $this->_request['token'];
+
+        $check = $matches->checkToken($token);
+
+        if (!$check) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max04",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+        $user_id = $this->_request['user_id'];
+
+        $limit = $this->_request['limit'] ? $this->_request['limit'] : 20;
+
+        $offset = $this->_request['offset'] ? $this->_request['offset'] : 0;
+
+        $league_id = $this->_request['league_id'];
+
+        $list = $matches->getMatchesEnd($limit, $offset, $league_id);
+
+
+        if (!$list) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max19",
+                "error_list" => $matches->__get('_query')->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        if ($user_id) {
+            foreach ($list as $match) {
+                $match->is_follow = $matches->checkFollow($user_id, $match->id);
+            }
+        }
+
+        $return = [
+            "success" => true,
+            "data" => $list
+        ];
+
+        return $this->response($this->json($return));
+    }
+
+    /**
+     * TODO: Lấy thông tin xếp hạng theo giải
+     */
+    public function get_score_board_by_league()
+    {
+        $matches = new matches();
+
+        $token = $this->_request['token'];
+
+        $check = $matches->checkToken($token);
+
+        if (!$check) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max04",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $league_id = $this->_request['id'];
+
+        if (!$league_id) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max01",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $score_board = $matches->getScoreBoardByLeague($league_id);
+
+        if (!$score_board) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max19",
+                "error_list" => $matches->__get('_query')->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "data" => $score_board
+        ];
+
+        return $this->response($this->json($return));
+    }
+
+    /**
+     * TODO: Thêm hoặc huỷ theo dõi trận đấu
+     */
+    public function set_user_follow()
+    {
+        $matches = new matches();
+
+        $token = $this->_request['token'];
+
+        $check = $matches->checkToken($token);
+
+        if (!$check) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max04",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+
+        $user_id = $this->_request['user_id'];
+
+        $match_id = $this->_request['match_id'];
+
+        $gcm_regid = $this->_request['gcm_regid'];
+
+        if (!$match_id || !$user_id || !$gcm_regid) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max01",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $checkFollow = $matches->checkFollow($user_id, $match_id);
+
+        if (!$checkFollow) {
+            $follow = $matches->setUserFollow($user_id, $match_id, $gcm_regid);
+        } else {
+            $follow = $matches->deleteUserFollow($user_id, $match_id);
+        }
+
+        if (!$follow) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max07",
+                "error_list" => $matches->__get('_query')->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "data" => [
+                "unFollow" => $checkFollow
+            ]
+        ];
+
+        return $this->response($this->json($return));
+
+    }
+
+    /**
+     * TODO: SEND notification
+     */
+    public function send_notification_match()
+    {
+        $notifications = new notifications();
+
+        $match_id = $this->_request['match_id'];
+
+        $title = $this->_request['title'];
+
+        $message = $this->_request['message'];
+
+
+        if (!$match_id || !$title || !$message) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max01",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+
+        $matches = new matches();
+
+
+        $list = $matches->getUsersFollowByMatch($match_id);
+
+        if (!$list) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max07",
+                "error_list" => $matches->__get('_query')->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $regis = [];
+        foreach ($list as $value) {
+            $regis[] = $value->gcm_regid;
+        }
+
+        $send = [
+            "title" => $title,
+            "message" => $message
+        ];
+
+        $test = $notifications->sendNotificationGoogle($regis, $send);
+
+        if (!$test) {
+            $return = [
+                "success" => false,
+                "message" => "Không gửi được bác ạ ",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "message" => "Send success"
+        ];
+
+        return $this->response($this->json($return));
+
+    }
+
+
+    /**
+     * TODO: HÀM CHỈ SỬ DỤNG TRONG THỜI GIAN  TEST
+     */
+
+    public function delete_user_for_develop()
+    {
+        $users = new users();
+
+        $token = $this->_request['token'];
+
+        $check = $users->checkToken($token);
+
+        if (!$check) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max04",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $username = $this->_request['username'];
+
+        if (!$users->deleteUserByUsername($username)) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max07",
+                "error_list" => $users->__get('_query')->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "message" => "Delete success"
         ];
 
         return $this->response($this->json($return));

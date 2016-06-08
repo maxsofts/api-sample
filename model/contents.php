@@ -34,6 +34,7 @@ class contents extends query
             //join category
             ->select(array(
                 $query->quoteName("category.title", "category_name"),
+                $query->quoteName("category.slug", "category_slug"),
             ))
             ->join("LEFT", "`content_contentcategory` AS `category` ON `category`.`id` = `content`.`parent_id`")
             //join user create
@@ -42,6 +43,11 @@ class contents extends query
                 $query->quoteName("person_create.last_name", "person_create_last_name"),
             ))
             ->join("LEFT", "`auth_user` AS `person_create` ON `person_create`.`id` = `content`.`person_create_id`")
+            //join user create
+            ->select(array(
+                $query->quoteName("profile.avatar_url", "person_create_avatar_url"),
+            ))
+            ->join("LEFT", "`userinformation_userprofile` AS `profile` ON `profile`.`user_id_id` = `content`.`person_create_id`")
             ->where(
                 $query->quoteName("content.parent_id") . " = " . $query->quote($category_id)
             )
@@ -82,10 +88,10 @@ class contents extends query
             ->from(
                 $query->quoteName("content_content", "content")
             )
-
             //join category
             ->select(array(
                 $query->quoteName("category.title", "category_name"),
+                $query->quoteName("category.slug", "category_slug"),
             ))
             ->join("LEFT", "`content_contentcategory` AS `category` ON `category`.`id` = `content`.`parent_id`")
             //join user create
@@ -94,11 +100,14 @@ class contents extends query
                 $query->quoteName("person_create.last_name", "person_create_last_name"),
             ))
             ->join("LEFT", "`auth_user` AS `person_create` ON `person_create`.`id` = `content`.`person_create_id`")
-
+            //join user profile
+            ->select(array(
+                $query->quoteName("profile.avatar_url", "person_create_avatar_url"),
+            ))
+            ->join("LEFT", "`userinformation_userprofile` AS `profile` ON `profile`.`user_id_id` = `content`.`person_create_id`")
             ->where(
                 $query->quoteName("content.person_create_id") . " = " . $query->quote($user_id)
             )
-
             ->order(
                 $query->quoteName("content.publicDate") . " DESC"
             )

@@ -31,6 +31,32 @@ class status extends query
     }
 
     /**
+     * @param $id
+     * @param string $text
+     * @return bool
+     */
+    public function updateStatus($id, $text = "")
+    {
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query
+            ->update(
+                $query->quoteName("userinformation_userstatus")
+            )
+            ->set(array(
+                $query->quoteName("edit_date") . " = " . $query->quote(date('Y-m-d H:i:s')),
+                $query->quoteName("text") . " = " . $query->quote($text),
+            ))
+            ->where(
+                $query->quoteName("id") . " = " . $query->quote($id)
+            );
+
+        return $query->setUpdate();
+    }
+
+    /**
      * @param $user_id
      * @param $limit
      * @param $offset

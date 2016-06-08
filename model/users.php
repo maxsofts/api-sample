@@ -102,7 +102,8 @@ class users extends query
         $query->select(array(
             $query->quoteName("profile.point"),
             $query->quoteName("profile.count_content"),
-            $query->quoteName("profile.avatar_url")
+            $query->quoteName("profile.avatar_url"),
+            $query->quoteName("profile.confirm_code"),
         ));
 
         $query->join("LEFT", "`userinformation_userprofile` AS `profile` ON `user`.id = `profile`.`user_id_id`");
@@ -254,6 +255,37 @@ class users extends query
         }
 
         return $last_user_id;
+    }
+
+    /**
+     * @param $user_id
+     * @return bool|string
+     */
+    public function update_confirm_code($user_id)
+    {
+
+        $confirm_code = random::render();
+
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query
+            ->update(
+                $query->quoteName("userinformation_userprofile")
+            )
+            ->set(
+                $query->quoteName("confirm_code") . " = " . $query->quote($confirm_code)
+            )
+            ->where(array(
+                $query->quoteName("user_id_id") . " = " . $query->quote($user_id),
+            ));
+
+        if (!$query->setUpdate()) {
+            return false;
+        }
+
+        return $confirm_code;
     }
 
     /**
@@ -461,6 +493,10 @@ class users extends query
         return true;
     }
 
+    /**
+     * @param $id
+     * @return bool
+     */
     public function active($id)
     {
         $query = $this->_query;
@@ -535,6 +571,10 @@ class users extends query
         return $list;
     }
 
+    /**
+     * @param $username
+     * @return bool|mixed
+     */
     public function getIdByUsername($username)
     {
         $query = $this->_query;
@@ -562,5 +602,53 @@ class users extends query
             return false;
         }
         return $id;
+    }
+
+    /**
+     * @param $username
+     * @return mixed
+     */
+    public function getAllByUserName($username)
+    {
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query->select("*");
+
+        $query->from(
+            $query->quoteName("auth_user", "user")
+        );
+
+        $query->where(
+            $query->quoteName("username") . " = " . $query->quote($username)
+        );
+
+        $query->setQuery();
+
+        return $query->loadObject();
+    }
+
+
+    public function deleteUserByUsername($username)
+    {
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query
+            ->delete(
+                $query->quoteName("auth_user")
+            )
+            ->where(
+                $query->quoteName("username") . " = " . $query->quote($username)
+            );
+
+        if (!$query->setQuery()) {
+            return false;
+        }
+
+        return true;
+
     }
 }

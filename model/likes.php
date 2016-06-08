@@ -28,6 +28,7 @@ class likes extends query
                 $query->quoteName("parent_id") . " = " . $query->quote($parent_id),
                 $query->quoteName("user_id") . " = " . $query->quote($user_id),
                 $query->quoteName("relate_type") . " = " . $query->quote($relate_type),
+                $query->quoteName("create_date") . " = " . $query->quote(date('Y-m-d H:i:s'))
             ]);
 
         $last_id = $query->setInsert();
