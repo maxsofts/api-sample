@@ -1,18 +1,20 @@
 <?php
 return [
-    "end_point" => "xxxxxxxxx",
+    "end_point" => "xxx",
 
-    "api_key" => "xxxxxxxxx",
+    "api_key" => "xx",
 
-    "api_secret" => "xxxxxxxxx",
+    "api_secret" => "xx",
 
-    "brand_name" => "xxxxxxxxx",
+    "brand_name" => "GHIENBONGDA",
 
     "text" => [
 
         "register" => "[CSKH] DANG KY: Ma xac nhan dang ky cua ban la : %s",
 
-        "re_pass" => "[CSKH] TAI KHOAN: Mat khau moi cua ban la : %s"
+        "re_pass" => "[CSKH] TAI KHOAN: Mat khau moi cua ban la : %s",
+
+        "re_phone" => "[CSKH] TAI KHOAN: Ma xac nhan so dien thoai moi cua ban la : %s"
     ],
 
     "limit_time" => "30" //Thời gian tính bằng phút

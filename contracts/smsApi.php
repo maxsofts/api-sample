@@ -46,7 +46,7 @@ class smsApi extends smsAbstract
      * @param $password
      * @return mixed
      */
-    public function sendPassword($phone,$password)
+    public function sendPassword($phone, $password)
     {
         $data = [
             "submission" => [
@@ -57,6 +57,31 @@ class smsApi extends smsAbstract
                         "id" => uuid::v4(),
                         "brandname" => $this->config['brand_name'],
                         "text" => sprintf($this->config['text']['re_pass'], $password),
+                        "to" => $phone
+                    ]
+                ]
+            ],
+        ];
+
+        return $this->send($data);
+    }
+
+    /**
+     * @param $code
+     * @param $phone
+     * @return mixed
+     */
+    public function sendNewPhone($code, $phone)
+    {
+        $data = [
+            "submission" => [
+                "api_key" => $this->config['api_key'],
+                "api_secret" => $this->config['api_secret'],
+                "sms" => [
+                    [
+                        "id" => uuid::v4(),
+                        "brandname" => $this->config['brand_name'],
+                        "text" => sprintf($this->config['text']['re_phone'], $code),
                         "to" => $phone
                     ]
                 ]

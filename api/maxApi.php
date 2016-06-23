@@ -4,6 +4,7 @@
  */
 namespace max_api\api;
 
+use max_api\SimpleImage\SimpleImage;
 use max_api\contracts\api;
 use max_api\contracts\config;
 use max_api\contracts\guid;
@@ -285,6 +286,56 @@ class maxApi extends api
 
     }
 
+    /**
+     * TODO: Lấy thông tin của một user theo ID
+     */
+    public function get_info_user()
+    {
+        $users = new users();
+
+
+        $token = $this->_request['token'];
+
+        $check = $users->checkToken($token);
+
+        if (!$check):
+            $return = array(
+                "success" => false,
+                "errorCode" => "max04",
+            );
+
+            return $this->response($this->json($return), 400);
+        endif; //end check
+
+        $id = $this->_request['id'];
+        if (!$id):
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        endif; //end passnew pass old
+
+        $profile = $users->getInfoUser($id);
+
+        if (!$profile) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max07",
+                "error_list" => $users->__get("_query")->error_list
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "data" => $profile
+        ];
+
+        return $this->response($this->json($return));
+    }
 
     /**
      * TODO: Đăng ký
@@ -396,11 +447,53 @@ class maxApi extends api
                     return $this->response($this->json($return), '400');
                 }
 
+                $confirm_code = random::render();
                 $data = [
                     "first_name" => $name,
                     "username" => $username,
-                    "password" => $password
+                    "password" => $password,
+                    "confirm_code" => $confirm_code
                 ];
+
+                $id = $users->getIdByUsername($username);
+
+                if ($id) {
+                    $return = array(
+                        "success" => false,
+                        "errorCode" => "max24"
+                    );
+
+                    return $this->response($this->json($return), 400);
+                }
+
+                /*
+                * Send SMS
+                */
+                $sms = new smsApi();
+
+                $dataStringSms = $sms->sendRegister($confirm_code, $username);
+
+                $dataSms = json_decode($dataStringSms);
+
+                $smsBase = [
+                    "phone" => $username,
+                    "id" => $dataSms->submission->sms[0]->id,
+                    "status" => $dataSms->submission->sms[0]->status,
+                ];
+
+                if (!$smsModel->insertSms($smsBase)) {
+                    $return["sms_message"] = $smsModel->__get("_query")->error_list;
+                }
+
+                if ($dataSms->submission->sms[0]->status != 0) {
+                    $return = array(
+                        "success" => false,
+                        "errorCode" => "max23"
+                    );
+
+                    return $this->response($this->json($return), 400);
+                }
+
 
                 $register = $users->register($data);
 
@@ -421,24 +514,6 @@ class maxApi extends api
                     "data" => $register
                 );
 
-                /*
-                 * Send SMS
-                 */
-                $sms = new smsApi();
-
-                $dataStringSms = $sms->sendRegister($register['confirm_code'], $username);
-
-                $dataSms = json_decode($dataStringSms);
-
-                $smsBase = [
-                    "phone" => $username,
-                    "id" => $dataSms->submission->sms[0]->id,
-                    "status" => $dataSms->submission->sms[0]->status,
-                ];
-
-                if (!$smsModel->insertSms($smsBase)) {
-                    $return["sms_message"] = $smsModel->__get("_query")->error_list;
-                }
 
                 return $this->response($this->json($return));
                 break;
@@ -572,7 +647,7 @@ class maxApi extends api
             "data" => [
                 'id' => $user_data->id,
                 'confirm_code' => $confirm_code,
-                'is_active' => $user_data->is_active
+                'is_active' => $user_data->is_active,
             ]
         );
 
@@ -772,10 +847,10 @@ class maxApi extends api
 
         $email = $this->_request['email'];
 
-        $phone = $this->_request['phone'];
+        //  $phone = $this->_request['phone'];
 
 
-        if (!$user_id || !$name || !$email || !$phone):
+        if (!$user_id || !$name || !$email):
             $return = array(
                 "success" => false,
                 "errorCode" => "max01",
@@ -787,7 +862,7 @@ class maxApi extends api
         $data = [
             "first_name" => $name,
             "email" => $email,
-            "phone" => $phone,
+            //      "phone" => $phone,
         ];
 
         if (!$users->updateProfile($user_id, $data)):
@@ -808,7 +883,186 @@ class maxApi extends api
             ],
         );
 
-        return $this->response($this->json($return), 400);
+        return $this->response($this->json($return));
+    }
+
+    /**
+     * TODO: Hàm upload Profile cùng điện thoại thay đổi
+     */
+    public function update_profile_phone()
+    {
+        $users = new users();
+
+        $token = $this->_request['token'];
+
+        $check = $users->checkToken($token);
+
+        if (!$check) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max04",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $phone = $this->_request['phone'];
+        $user_id = $this->_request['user_id'];
+
+        if (!$phone || !$user_id):
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        endif;
+        /*
+         * Kiểm tra sự tồn tại của phone
+         */
+        $id = $users->getIdByUsername($phone);
+
+        if ($id) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max24"
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+        /*
+         * Kiểm tra sdt này có Spam quá nhanh không
+         */
+        $smsModel = new sms();
+
+        if (!$smsModel->checkLimitTime($phone)) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max22",
+                "limit_time" => config::get("sms.limit_time")
+            );
+
+            return $this->response($this->json($return), '400');
+        }
+
+        $confirm_code = random::render();
+
+        $sms = new smsApi();
+
+        /*
+         * Gửi tin nhắn cho người dùng
+         */
+        $dataStringSms = $sms->sendNewPhone($confirm_code, $phone);
+
+        $dataSms = json_decode($dataStringSms);
+
+        $smsBase = [
+            "phone" => $phone,
+            "id" => $dataSms->submission->sms[0]->id,
+            "status" => $dataSms->submission->sms[0]->status,
+        ];
+
+        if (!$smsModel->insertSms($smsBase)) {
+            $return["sms_message"] = $smsModel->__get("_query")->error_list;
+        }
+
+        if ($dataSms->submission->sms[0]->status != 0) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max23"
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        /*
+         * Update tạm 2 trường code xác nhận mới và SĐT mới vào database cho đến khi xác nhận thành
+         */
+
+        if (!$users->updateTmpPhone($user_id, $confirm_code, $phone)) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max07",
+                "error_list" => $users->__get("_query")->error_list
+            ];
+            return $this->response($this->json($return), 400);
+        }
+
+        $return = [
+            "success" => true,
+            "data" => [
+                "phone" => $phone,
+                "code_check" => $confirm_code
+            ]
+        ];
+
+        return $this->response($this->json($return));
+    }
+
+    /**
+     * TODO: Change New Phone
+     */
+    public function active_change_phone()
+    {
+        $users = new users();
+
+        $token = $this->_request['token'];
+
+        $check = $users->checkToken($token);
+
+        if (!$check) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max04",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $user_id = $this->_request['user_id'];
+
+        $phone = $this->_request['phone'];
+
+        $code = $this->_request['code'];
+
+        if (!$user_id || !$phone || !$code) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        if (!$users->checkNewPhone($user_id, $code, $phone)) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max19",
+                "error_list" => $users->__get("_query")->error_list
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        if (!$users->updateNewPhone($user_id, $phone)) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max19",
+                "error_list" => $users->__get("_query")->error_list
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+        $return = [
+            "success" => true,
+            "data" => [
+                "id" => $user_id,
+                "phone" => $phone,
+                "username" => $phone,
+            ]
+        ];
+
+        return $this->response($this->json($return));
     }
 
     /**
@@ -902,18 +1156,42 @@ class maxApi extends api
 
                 return $this->response($this->json($return), 400);
             }
-
             // You should name it uniquely.
             // DO NOT USE $_FILES['upfile']['name'] WITHOUT ANY VALIDATION !!
             // On this example, obtain safe unique name from its binary data.
 
             $nameImage = guid::get();
 
+            //Tạo đường dẫn ảnh
             $upload = sprintf($config['upload']['dir'], "avatar", $user_id, $nameImage, $ext);
             $url = sprintf($config['upload']['url'], "avatar", $user_id, $nameImage, $ext);
             $dirUp = sprintf($config['upload']['dir_base'], "avatar", $user_id);
 
+            $uploadStatus = sprintf($config['upload']['dir'], "status", $user_id, $nameImage, $ext);
+            $urlStatus = sprintf($config['upload']['url'], "status", $user_id, $nameImage, $ext);
+            $dirUpStatus = sprintf($config['upload']['dir_base'], "status", $user_id);
 
+
+            $media = new media();
+            //Tạo file mới media
+            if (!$id_media = $media->setMedia($user_id, $urlStatus, 0, 'status')) {
+                $return = [
+                    "success" => false,
+                    "errorCode" => "max07",
+                    "error_list" => $media->__get('_query')->error_list
+                ];
+
+                return $this->response($this->json($return), 400);
+            }
+
+            //Tạo ảnh Avatar CROP 150x150px;
+            $image = new SimpleImage($_FILES['avatar']['tmp_name']);
+
+            $image->thumbnail(150, 150, 'center');
+
+            $image->save("tmp/$nameImage.$ext");
+
+            // Kết nối SFTP;
             $sftp = new sftp();
             if (!$sftp) {
                 $return = [
@@ -924,7 +1202,7 @@ class maxApi extends api
                 return $this->response($this->json($return), 400);
             }
 
-
+            //Tạo Thư mục lưu ảnh avatar
             if (!$sftp->is_dir($dirUp)) {
                 if (!$sftp->mkdir($dirUp)) {
                     $return = [
@@ -935,8 +1213,22 @@ class maxApi extends api
                     return $this->response($this->json($return), 400);
                 }
             }
-            // puts an x-byte file named filename.remote on the SFTP server,
-            if (!$sftp->put($upload, $_FILES['avatar']['tmp_name'], NET_SFTP_LOCAL_FILE)) {
+
+            //Tạo thư mục lưu ảnh status
+            if (!$sftp->is_dir($dirUpStatus)) {
+                if (!$sftp->mkdir($dirUpStatus)) {
+                    $return = [
+                        "success" => false,
+                        "errorCode" => "max15"
+                    ];
+
+                    return $this->response($this->json($return), 400);
+                }
+            }
+            // puts an x-byte file named filename.remote on the SFTP server,tạm
+
+            //Upload ảnh avatar đã cắt ;
+            if (!$sftp->put($upload, "tmp/$nameImage.$ext", NET_SFTP_LOCAL_FILE)) {
                 $return = [
                     "success" => false,
                     "errorCode" => "max17"
@@ -945,7 +1237,28 @@ class maxApi extends api
                 return $this->response($this->json($return), 400);
             };
 
+            //Upload ảnh avatar status mới ;
+            if (!$sftp->put($uploadStatus, $_FILES['avatar']['tmp_name'], NET_SFTP_LOCAL_FILE)) {
+                $return = [
+                    "success" => false,
+                    "errorCode" => "max17"
+                ];
 
+                return $this->response($this->json($return), 400);
+            };
+
+            //Xoá ảnh thubnail  trên API;
+            unlink("$nameImage.$ext");
+            //Cập nhật status mới;
+            $status = new status();
+
+            //Tạo Status mới
+            $last_id = $status->setStatus($user_id, '');
+
+            //Cập nhật ảnh cho status;
+            $media->updateParent($id_media, $last_id);
+
+            //Cập nhật avatar mới ;
             if (!$users->updateAvatar($user_id, $url)) {
                 $return = [
                     "success" => false,
@@ -955,6 +1268,7 @@ class maxApi extends api
 
                 return $this->response($this->json($return), 400);
             }
+
 
             $return = [
                 "success" => true,
@@ -1290,9 +1604,13 @@ class maxApi extends api
 
             foreach ($comment->comment_reply as $reply) {
                 $reply->is_like = $likes->checkLike($reply->id, $current_user_id, "comment");
+
             }
 
             $comment->total_reply = $comments->getCountComment($comment->id, 'comment');
+
+            $comment->has_comment_reply = $comment->total_reply ? true : false;
+
             $comment->is_like = $likes->checkLike($comment->id, $current_user_id, "comment");
         }
 
@@ -1301,6 +1619,7 @@ class maxApi extends api
             "data" => [
                 "content" => [
                     "total" => $total,
+                    "has_comment" => $total ? true : false,
                     "list_comment_content" => $list_comment_content
                 ],
             ]
@@ -1339,7 +1658,7 @@ class maxApi extends api
 
         $current_user_id = $this->_request['c_user_id'] ? $this->_request['c_user_id'] : 0;
 
-        if (!$id || !$current_user_id) {
+        if (!$id) {
             $return = array(
                 "success" => false,
                 "errorCode" => "max01",
@@ -1436,11 +1755,14 @@ class maxApi extends api
             $comment->comment_reply = $comments->getCommentsByRelateType($comment->id, $limit, $offset, 'status');
 
             foreach ($comment->comment_reply as $reply) {
-                $reply->is_like = $likes->checkLike($reply->id, $current_user_id, "status");
+                $reply->is_like = $likes->checkLike($reply->id, $current_user_id, "comment");
             }
 
-            $comment->total_reply = $comments->getCountComment($comment->id, 'status');
-            $comment->is_like = $likes->checkLike($comment->id, $current_user_id, "status");
+            $comment->total_reply = $comments->getCountComment($comment->id, 'comment');
+
+            $comment->has_comment_reply = $comment->total_reply ? true : false;
+
+            $comment->is_like = $likes->checkLike($comment->id, $current_user_id, "comment");
         }
 
         $return = [
@@ -1448,6 +1770,7 @@ class maxApi extends api
             "data" => [
                 "content" => [
                     "total" => $total,
+                    "has_comment" => $total ? true : false,
                     "list_comment_content" => $list_comment_status
                 ],
             ]
@@ -1519,6 +1842,86 @@ class maxApi extends api
             "data" => [
                 "id" => $setComment,
                 "comment" => $comment_text,
+            ]
+        ];
+
+        if ($comments->__get("_query")->error_list) {
+            $return["message"] = [
+                "update count not success on content",
+                "error" => $comments->__get("_query")->error_list
+            ];
+        }
+
+        return $this->response($this->json($return));
+    }
+
+    /**
+     * TODO: Thêm comment cùng emoticons
+     */
+    public function set_comment_with_emoticons()
+    {
+        $comments = new comments();
+
+        $token = $this->_request['token'];
+
+        $check = $comments->checkToken($token);
+
+        if (!$check) {
+            $return = [
+                "success" => false,
+                "errorCode" => "max04",
+            ];
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $id = $this->_request['id'];
+
+        $user_id = $this->_request['user_id'];
+
+        $relate_type = $this->_request['relate_type'];
+
+        $url = $this->_request['url'];
+
+        if (!$id || !$user_id || !$relate_type || !$url) {
+            $return = array(
+                "success" => false,
+                "errorCode" => "max01",
+            );
+
+            return $this->response($this->json($return), 400);
+        }
+
+        $media = new media();
+
+        if(!$id_media = $media->setMedia($user_id, $url, 0, 'comment')){
+            $return = [
+                "success" => false,
+                "errorCode" => "max07",
+                "error_list" => $media->__get("_query")->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        };
+
+        if(!$setComment = $comments->setComment($id, $user_id, '', $relate_type)){
+            $return = [
+                "success" => false,
+                "errorCode" => "max07",
+                "error_list" => $comments->__get("_query")->error_list
+            ];
+
+            return $this->response($this->json($return), 400);
+        };
+
+        $media->updateParent($id_media, $setComment);
+
+        $return = [
+            "success" => true,
+            "data" => [
+                "id" => $setComment,
+                "comment" => '',
+                "image_id" => $id_media
             ]
         ];
 
@@ -1611,6 +2014,8 @@ class maxApi extends api
 
         $id = $this->_request['id'];
 
+        $relate_type = $this->_request['relate_type'] ? $this->_request['relate_type'] : 'status';
+
         if (!$id) {
             $return = array(
                 "success" => false,
@@ -1621,7 +2026,7 @@ class maxApi extends api
         }
 
 
-        if (!$comments->deleteComment($id)) {
+        if (!$comments->deleteComment($id, $relate_type)) {
             $return = [
                 "success" => false,
                 "errorCode" => "max20",
@@ -1689,11 +2094,9 @@ class maxApi extends api
 
 
         if ($media_id) {
-            if ($media_id) {
-                $media = new media();
+            $media = new media();
 
-                $media->updateParent($media_id, $last_id);
-            }
+            $media->updateParent($media_id, $last_id);
         }
         $return = [
             "success" => true,
@@ -1738,6 +2141,9 @@ class maxApi extends api
 
         $text = $this->_request['text'];
 
+        $media_id = $this->_request['media_id'];
+
+
         if (!$id || !$text) {
             $return = array(
                 "success" => false,
@@ -1757,6 +2163,20 @@ class maxApi extends api
             return $this->response($this->json($return), 400);
         }
 
+        if ($media_id) {
+            $media = new media();
+
+            $media->updateParent($media_id, $id);
+        }
+
+        $return = [
+            "success" => true,
+            "data" => [
+                "id" => $id
+            ]
+        ];
+
+        return $this->response($this->json($return));
     }
 
 
@@ -1848,7 +2268,7 @@ class maxApi extends api
         }
 
 
-        if (!$status->deleteComment($id)) {
+        if (!$status->deleteStatus($id)) {
             $return = [
                 "success" => false,
                 "errorCode" => "max20",
@@ -2203,7 +2623,7 @@ class maxApi extends api
         $return = [
             "success" => true,
             "data" => [
-                "like" => $like,
+                "like" => $like ? false : true,
                 "total" => $total
             ]
         ];
@@ -2273,7 +2693,7 @@ class maxApi extends api
         $return = [
             "success" => true,
             "data" => [
-                "like" => $like,
+                "like" => $like ? false : true,
                 "total" => $total
             ]
         ];
@@ -2342,7 +2762,7 @@ class maxApi extends api
         $return = [
             "success" => true,
             "data" => [
-                "like" => $like,
+                "like" => $like ? false : true,
                 "total" => $total
             ]
         ];
@@ -2801,7 +3221,7 @@ class maxApi extends api
         if (!$test) {
             $return = [
                 "success" => false,
-                "message" => "Không gửi được bác ạ ",
+                "message" => "Send error",
             ];
 
             return $this->response($this->json($return), 400);

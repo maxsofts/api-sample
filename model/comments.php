@@ -70,7 +70,41 @@ class comments extends query
         $list = $query->loadObjects();
 
         if (!$list) {
-            return false;
+            return array();
+        }
+        return $list;
+    }
+
+    /**
+     * Lấy danh sách
+     * @param $parent_id
+     * @param string $relate_type
+     * @return array|mixed
+     */
+    public function getCommentsIdByRelateType($parent_id, $relate_type = "content")
+    {
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query
+            ->select(array(
+                $query->quoteName("comment.id"),
+            ))
+            ->from(
+                $query->quoteName("userinformation_usercomment", "comment")
+            )
+            ->where(array(
+                $query->quoteName("comment.parent_id") . " = " . $query->quote($parent_id),
+                $query->quoteName("comment.relate_type") . " = " . $query->quote($relate_type)
+            ));
+
+        $query->setQuery();
+
+        $list = $query->loadArrays();
+
+        if (!$list) {
+            return array();
         }
         return $list;
     }
@@ -214,9 +248,10 @@ class comments extends query
 
     /**
      * @param $id
+     * @param string $relate_type
      * @return bool
      */
-    public function deleteComment($id)
+    public function deleteComment($id, $relate_type = 'comment')
     {
         $query = $this->_query;
 
@@ -231,12 +266,49 @@ class comments extends query
         if (!$query->setQuery()) {
             return false;
         }
+        //delete Like
+        $modelLike = new likes();
+
+        if(!$modelLike->deleteLike($id, $relate_type)){
+            $query->error_list[] = $modelLike->_query->error_list;
+        };
+
         //detete media
         $media = new media();
 
         if (!$media->deleteMedia($id, 'comment')) {
-            $query->error_list = $media->_query->error_list;
+            $query->error_list[] = $media->_query->error_list;
         }
+
+
+
+        if ($relate_type != 'comment') {
+            $query->getQuery();
+
+            $query
+                ->select(
+                    $query->quoteName('id')
+                )
+                ->from(
+                    $query->quoteName('userinformation_usercomment')
+                )
+                ->where([
+                    $query->quoteName('parent_id') . ' = ' . $query->quote($id),
+                    $query->quoteName('relate_type') . ' = ' . $query->quote('comment')
+                ]);
+
+            $query->setQuery();
+
+            $listComment = $query->loadObjects();
+
+
+            if ($listComment) {
+                foreach ($listComment as $comment) {
+                    $this->deleteComment($comment->id); //Đệ quy để xoá comment
+                }
+            }
+        }
+
 
         return true;
     }

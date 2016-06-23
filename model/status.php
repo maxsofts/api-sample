@@ -106,7 +106,7 @@ class status extends query
      * @param $id
      * @return bool
      */
-    public function deleteComment($id)
+    public function deleteStatus($id)
     {
 
         $query = $this->_query;
@@ -126,11 +126,45 @@ class status extends query
         $media = new media();
 
         if (!$media->deleteMedia($id, 'status')) {
-            $query->error_list = $media->_query->error_list;
+            $query->error_list[] = $media->_query->error_list;
+        }
+
+        $likes = new likes();
+
+        if(!$likes->deleteLike($id,'status')){
+            $query->error_list[] = $likes->_query->error_list;
+        }
+
+        //Lấy danh sách comment theo status -- sau đó delete nốt status
+        $query->getQuery();
+
+        $query
+            ->select(
+                $query->quoteName('id')
+            )
+            ->from(
+                $query->quoteName('userinformation_usercomment')
+            )
+            ->where([
+                $query->quoteName('parent_id') . ' = ' . $query->quote($id),
+                $query->quoteName('relate_type') . ' = ' . $query->quote('status')
+            ]);
+
+        $query->setQuery();
+
+        $listComment = $query->loadObjects();
+
+        if ($listComment) {
+            $modelComment = new comments();
+            foreach ($listComment as $comment) {
+                $modelComment->deleteComment($comment->id, 'status');
+            }
         }
 
         return true;
+
     }
+
 
     /**
      * @param $id

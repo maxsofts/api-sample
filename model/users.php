@@ -3,6 +3,8 @@
 namespace max_api\model;
 
 use max_api\contracts\random;
+use max_api\contracts\sftp;
+use max_api\contracts\uploadHelper;
 use max_api\database\query;
 use max_api\contracts\password;
 
@@ -149,11 +151,6 @@ class users extends query
         $last_user_id = $query->setInsert();
 
         /*
-         * Tạo mã kích hoạt random
-         */
-        $confirm_code = random::render();
-
-        /*
          * Insert profile with user
          */
         $query->getQuery();
@@ -165,7 +162,7 @@ class users extends query
         $query->set(array(
             $query->quoteName("user_id_id") . " = " . $query->quote($last_user_id),
             $query->quoteName("phone") . " = " . $query->quote($data["username"]),
-            $query->quoteName("confirm_code") . " = " . $query->quote($confirm_code),
+            $query->quoteName("confirm_code") . " = " . $query->quote($data["confirm_code"]),
         ));
 
         $query->setInsert();
@@ -178,8 +175,8 @@ class users extends query
          */
         $data = [
             "id" => $last_user_id,
-            "confirm_code" => $confirm_code,
-            "is_active" => 0
+            "is_active" => 0,
+            "confirm_code" => $data["confirm_code"]
         ];
 
         return $data;
@@ -413,6 +410,48 @@ class users extends query
      */
     public function updateAvatar($user_id, $path)
     {
+        //Xoá ảnh cũ
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        //get link unset
+        $query
+            ->select(
+                $query->quoteName("avatar_url")
+            )
+            ->from(
+                $query->quoteName("userinformation_userprofile")
+            )
+            ->where(array(
+                $query->quoteName("user_id_id") . " = " . $query->quote($user_id)
+            ));
+
+        $query->setQuery();
+
+        $imageLink = $query->loadResult();
+
+
+        if ($imageLink) {
+            $imageDir = uploadHelper::linkToDir($imageLink);
+
+            $sftp = new sftp();
+
+            if (!$sftp) {
+                $this->_query->error_list = [
+                    "message" => "can't delete image on host"
+                ];
+            }
+            if ($sftp->is_file($imageDir)) {
+                if (!$sftp->delete($imageDir)) {
+                    $this->_query->error_list = [
+                        "message" => "can't delete image on host"
+                    ];
+                    return false;
+                }
+            }
+        }
+
         $query = $this->_query;
 
         $query->getQuery();
@@ -471,18 +510,80 @@ class users extends query
             return false;
         }
 
+//        $query->getQuery();
+//
+//        $query
+//            ->update(
+//                $query->quoteName("userinformation_userprofile")
+//            )
+//            ->set(
+//                $query->quoteName("phone") . " = " . $query->quote($data['phone'])
+//            )
+//            ->where(array(
+//                $query->quoteName("user_id_id") . " = " . $query->quote($user_id),
+//            ));
+//
+//        $update = $query->setUpdate();
+//
+//        if (!$update) {
+//            return false;
+//        }
+
+        return true;
+    }
+
+    /**
+     * @param $id
+     * @param $confirm_code
+     * @param $phone
+     * @return bool
+     */
+    public function updateTmpPhone($id, $confirm_code, $phone)
+    {
+        $query = $this->_query;
+
         $query->getQuery();
 
         $query
             ->update(
                 $query->quoteName("userinformation_userprofile")
             )
-            ->set(
-                $query->quoteName("phone") . " = " . $query->quote($data['phone'])
-            )
+            ->set([
+                $query->quoteName("tmp_phone") . " = " . $query->quote($phone),
+                $query->quoteName("tmp_phone_code") . " = " . $query->quote($confirm_code),
+            ])
             ->where(array(
-                $query->quoteName("user_id_id") . " = " . $query->quote($user_id),
+                $query->quoteName("user_id_id") . " = " . $query->quote($id),
             ));
+
+        var_dump($query);die();
+
+       return $query->setUpdate();
+    }
+
+    /**
+     * @param $id
+     * @param $phone
+     * @return bool
+     */
+    public function updateNewPhone($id, $phone)
+    {
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query->update(
+            $query->quoteName("auth_user")
+        );
+
+        $query->set(array(
+                $query->quoteName("username") . " = " . $query->quote($phone),
+            )
+        );
+
+        $query->where(array(
+            $query->quoteName("id") . " = " . $query->quote($id),
+        ));
 
         $update = $query->setUpdate();
 
@@ -490,7 +591,51 @@ class users extends query
             return false;
         }
 
+        $query->getQuery();
+
+        $query
+            ->update(
+                $query->quoteName("userinformation_userprofile")
+            )
+            ->set(
+                $query->quoteName("phone") . " = " . $query->quote($phone)
+            )
+            ->where(array(
+                $query->quoteName("user_id_id") . " = " . $query->quote($id),
+            ));
+
+        $query->setUpdate();
+
         return true;
+    }
+
+    /**
+     * @param $id
+     * @param $code
+     * @param $phone
+     * @return mixed
+     */
+    public function checkNewPhone($id, $code, $phone)
+    {
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query
+            ->select("COUNT(`id`)")
+            ->from(
+                $query->quoteName("userinformation_userprofile")
+            )
+            ->where([
+                $query->quoteName("user_id_id") . " = " . $query->quote($id),
+                $query->quoteName("tmp_phone") . " = " . $query->quote($phone),
+                $query->quoteName("tmp_phone_code") . " = " . $query->quote($code)
+            ]);
+
+        $query->setQuery();
+
+
+        return $query->loadResult();
     }
 
     /**

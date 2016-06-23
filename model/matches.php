@@ -322,7 +322,7 @@ class matches extends query
                 $query->quoteName("team.name", "team_name"),
                 $query->quoteName("team.avatar", "team_avatar"),
             ])
-            ->join("LEFT", "`matches_team` AS `team` ON `team`.`id` = `team`.`team_id`")
+            ->join("LEFT", "`matches_team` AS `team` ON `team`.`id` = `scoreboard`.`team_id`")
             //Join team guest
             ->select([
                 $query->quoteName("league.name", "league_name"),
@@ -337,6 +337,7 @@ class matches extends query
             );
 
         $query->setQuery();
+
 
         return $query->loadObjects();
     }

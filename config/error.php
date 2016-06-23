@@ -23,5 +23,7 @@ return [
     "max19" => "Dữ liệu không tồn tại hoặc không thể lấy dữ liệu",
     "max20" => "Không thể xoá dữ liệu",
     "max21" => "Tài khoản này đã được kích hoạt vui lòng kiểm tra lại ",
-    "max22" => "Không thể gửi tin nhắn liên tục với cùng một số điện thoại. vui lòng thử lại sau %s phút"
+    "max22" => "Không thể gửi tin nhắn liên tục với cùng một số điện thoại. vui lòng thử lại sau %s phút",
+    "max23" => "Số điện thoại không chính xác hoặc không thể gửi tin nhắn, Đăng ký không thành công",
+    "max24" => "Tài khoản đã tồn tại"
 ];

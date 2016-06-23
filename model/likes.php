@@ -140,4 +140,33 @@ class likes extends query
 
         return $count;
     }
+
+    /**
+     * Xoá like
+     *
+     * @param $parent_id
+     * @param $relate_type
+     * @return bool
+     */
+    public function deleteLike($parent_id, $relate_type)
+    {
+        $query = $this->_query;
+
+        $query->getQuery();
+
+        $query
+            ->delete(
+                $query->quoteName("userinformation_userlike")
+            )
+            ->where([
+                $query->quoteName("parent_id") . " = " . $query->quote($parent_id),
+                $query->quoteName("relate_type") . " = " . $query->quote($relate_type),
+            ]);
+
+        if (!$query->setQuery()) {
+            return false;
+        }
+
+        return true;
+    }
 }

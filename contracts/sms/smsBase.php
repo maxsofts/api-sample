@@ -15,6 +15,8 @@ interface smsBase
 
     public function sendPassword($phone,$password);
 
+    public function sendNewPhone($phone, $password);
+
     public function send($dataString);
 
     public function json($data);
