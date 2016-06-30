@@ -496,7 +496,8 @@ class users extends query
 
         $query->set(array(
                 $query->quoteName("email") . " = " . $query->quote($data['email']),
-                $query->quoteName("first_name") . " = " . $query->quote($data['first_name'])
+                $query->quoteName("first_name") . " = " . $query->quote($data['first_name']),
+                $query->quoteName("last_name") . " = " . $query->quote('')
             )
         );
 
@@ -558,7 +559,7 @@ class users extends query
 
         var_dump($query);die();
 
-       return $query->setUpdate();
+        return $query->setUpdate();
     }
 
     /**
@@ -691,6 +692,7 @@ class users extends query
             )
             //Join User auth
             ->select(array(
+                $query->quoteName("user.id"),
                 $query->quoteName("user.first_name"),
                 $query->quoteName("user.last_name"),
                 $query->quoteName("user.email")

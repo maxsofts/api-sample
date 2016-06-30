@@ -70,6 +70,7 @@ class status extends query
 
         $query
             ->select([
+                $query->quoteName("status.id"),
                 $query->quoteName("status.text"),
                 $query->quoteName("status.create_date"),
                 $query->quoteName("status.edit_date"),
